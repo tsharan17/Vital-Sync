@@ -480,7 +480,7 @@ body.modal-open { overflow: hidden; }
 [data-theme="light"] .xpbar i { background: var(--blue); }
 /* the title band: NASA deep blue with large white type */
 [data-theme="light"] .band .frame { background: linear-gradient(120deg, #0b3d91, #061d4a 70%); border: 0; border-radius: 16px;
-  --ink: #ffffff; --soft: #c9d6f2; --blue: #9cc3ff; --track: rgba(255, 255, 255, .22); --line: rgba(255, 255, 255, .25); --s0: #5fe0a3; --s0-bg: rgba(95, 224, 163, .15); --s2: #ffc65c; --s2-bg: rgba(255, 198, 92, .15); --s3: #ff8a73; --s3-bg: rgba(255, 138, 115, .15); color: var(--ink); }
+  --ink: #ffffff; --soft: #c9d6f2; --blue: #9cc3ff; --track: rgba(255, 255, 255, .22); --tint2: rgba(156, 195, 255, .16); --bg: #0a2f72; --s0-fill: #5fe0a3; --s2-fill: #ffc65c; --line: rgba(255, 255, 255, .25); --s0: #5fe0a3; --s0-bg: rgba(95, 224, 163, .15); --s2: #ffc65c; --s2-bg: rgba(255, 198, 92, .15); --s3: #ff8a73; --s3-bg: rgba(255, 138, 115, .15); color: var(--ink); }
 [data-theme="light"] .band .frame::before, [data-theme="light"] .band .frame::after { border-color: rgba(255, 255, 255, .7); filter: none; }
 [data-theme="light"] .band .btn.primary, [data-theme="light"] .band .btn.onband { background: #fff; color: #0b3d91; }
 [data-theme="light"] .band .btn { color: #fff; border-color: rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .06); }
@@ -515,3 +515,29 @@ body.modal-open { overflow: hidden; }
 .modal h2:focus, .modal h2:focus-visible { outline: none; box-shadow: none; }
 .hud #crew { max-width: 160px; }
 .tog.icon { padding: 6px 9px; }
+
+/* station illustrations in title bands */
+.art { display: block; width: 100%; height: auto; overflow: visible; }
+.art text { font-family: var(--mono); }
+.bandart { display: none; }
+@media (min-width: 1100px) {
+  .band .frame.has-art { padding-right: min(36%, 420px); }
+  .bandart { display: block; position: absolute; right: 34px; top: 50%; transform: translateY(-50%); width: min(32%, 360px); pointer-events: none; }
+}
+@media (prefers-reduced-motion: no-preference) { .bandart .art { animation: floaty 6s ease-in-out infinite; } @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } } }
+.newhere { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }
+.deck { scroll-margin-top: 90px; }
+#deck-h:focus { outline: none; }
+.newhere .btn { min-height: 40px; padding: 8px 16px; font-size: 14px; }
+[data-theme="satellite"] .newhere .btn.onband { background: var(--tint2); color: var(--blue); border-color: var(--edge); }
+
+/* mission deck */
+.deckwrap { padding-bottom: 60px; }
+.deckhead { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 14px; }
+.deckgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 16px; }
+.deckcard { display: grid; grid-template-rows: auto 1fr; align-content: start; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); overflow: hidden; backdrop-filter: blur(12px); }
+.deckcard:hover { border-color: var(--blue); box-shadow: var(--glow); }
+.deckart { padding: 14px 18px 6px; background: var(--tint); border-bottom: 1px solid var(--line); }
+.deckbody { display: grid; gap: 6px; padding: 14px 16px 16px; }
+.deckbody b { font-size: 17px; }
+@media (prefers-reduced-motion: no-preference) { .deckcard { transition: transform .18s, border-color .15s, box-shadow .2s; } .deckcard:hover { transform: translateY(-3px); } }

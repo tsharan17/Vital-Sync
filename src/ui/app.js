@@ -10,6 +10,8 @@ import { voice, parseSpoken, parseAny, linkVolume } from './audioGuide.js';
 import { THEMES, themePref, setTheme, applyTheme } from './theme.js';
 import { briefHTML, stampHTML, BRIEF } from './views/overlays.js';
 import * as audio from './views/audio.js';
+import { deck } from './views/deck.js';
+import { artFor } from './art.js';
 import { timerAction, mountTimers, onTimerDone, resetTimers, timerState } from './timer.js';
 import { starfield } from './starfield.js';
 import * as checkin from './views/checkin.js';
@@ -86,9 +88,10 @@ function render() {
   let main;
   if (!P.log.length && NEEDS_DATA.includes(v)) main = `<section class="band"><div class="wrap"><div class="frame"><div class="kicker">NO TELEMETRY</div><h1>No readings yet.</h1><p class="lede">${esc(P.name)} has not completed a clearance. The first one takes about ten minutes with the timed rests.</p><p style="margin-top:24px"><a class="btn primary big" href="#check-in">Start your first clearance</a></p></div></div></section>`;
   else main = VIEWS[v].view(c);
+  if (artFor(v)) main = main.replace('<div class="frame">', `<div class="frame has-art"><div class="bandart">${artFor(v)}</div>`);
+  if (v === 'check-in') main += `<div class="wrap deckwrap">${deck(c)}</div>`;
   const replay = S.viewDay != null && S.viewDay < lastDay() && v !== 'check-in' ? `<div class="wrap" style="margin-top:14px"><p class="note info">Viewing mission day ${S.viewDay}. <button class="btn ghost" data-act="replay-clear">Back to the latest day</button></p></div>` : '';
   const { rail, bar } = hud(v, P, c.m);
-  if (!P.briefed && S.brief == null && !S.stamp) { S.brief = 0; S.ovFocus = true; }
   const overlay = S.stamp && v === 'today' ? stampHTML(S.stamp) : S.brief != null ? briefHTML(S.brief, P) : '';
   document.getElementById('app').innerHTML = `<a class="sr" href="#main">Skip to content</a><div class="shell">${rail}<div class="main">${bar}<main id="main" tabindex="-1">${replay}${main}</main>
   <footer class="foot"><div class="wrap"><span>Vital Sync by Team V-Sync. Decision support, not diagnosis. Built for the NASA Space Apps Challenge 2026; not affiliated with or endorsed by NASA.</span><span><a href="#validation">Demo and validation</a> · Data stays on this device</span></div></footer></div></div>${overlay}`;
@@ -179,7 +182,7 @@ function play(key, lines) {
 function act(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, D = S.ci, P = prof();
-  if (!['ci-step', 't-tap', 'snd', 'e-dir', 'ci-mic', 'au-sfx', 'br-say', 'guide-say', 'au-try', 'stamp-close'].includes(a)) sfx.blip();
+  if (!['deck-jump', 'ci-step', 't-tap', 'snd', 'e-dir', 'ci-mic', 'au-sfx', 'br-say', 'guide-say', 'au-try', 'stamp-close'].includes(a)) sfx.blip();
   switch (a) {
     case 'snd': setMuted(!isMuted()); if (!isMuted()) sfx.confirm(); break;
     case 'br-open': S.brief = 0; S.ovFocus = true; break;
@@ -188,6 +191,7 @@ function act(e) {
     case 'br-say': voice.say(BRIEF[S.brief].say, true); return;
     case 'br-close': closeBrief(); break;
     case 'br-go': closeBrief(); if (location.hash !== '#check-in') { location.hash = 'check-in'; return; } break;
+    case 'deck-jump': document.querySelector('.deck')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); document.getElementById('deck-h')?.focus({ preventScroll: true }); return;
     case 'stamp-close': S.stamp = null; sfx.select(); break;
     case 'guide-say': voice.sayQueue(audio.guideLines(b.dataset.id)); return;
     case 'au-debrief': play('debrief', audio.debriefLines(ctx())); return;
