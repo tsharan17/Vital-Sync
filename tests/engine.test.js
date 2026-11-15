@@ -210,3 +210,17 @@ test('streak milestones award at 3, 7, 14, 30, 60 and 100 days', () => {
   const a = streakAward(7); assert.equal(a.last.name, 'Stable orbit'); assert.equal(a.next.days, 14); assert.equal(a.toNext, 7); assert.equal(a.justHit.days, 7);
   assert.equal(streakAward(2).last, null); assert.equal(streakAward(8).justHit, null); assert.equal(streakAward(120).next, null);
 });
+
+// ---- Rover location and camera colour matching ----
+import { nearestSwatch, URINE_CHART, cabinTelemetry as cabT, consultDays as cDays } from '../src/engine/index.js';
+test('pressurized rover: longer ground loop than the Mars base, more CO2 in the small cabin', () => {
+  const rover = MODES.find(m => m.id === 'rover');
+  assert.ok(rover && rover.name === 'Pressurized rover');
+  assert.ok(cDays(rover) > cDays(mars));
+  for (const d of [1, 5, 9]) assert.ok(cabT(d, rover).v.co2 > cabT(d, mars).v.co2);
+});
+test('photo colour matches the nearest urine chart shade', () => {
+  assert.equal(nearestSwatch([251, 246, 208], URINE_CHART).index, 0);
+  assert.equal(nearestSwatch([124, 84, 24], URINE_CHART).index, 7);
+  assert.equal(nearestSwatch([222, 190, 40], URINE_CHART).index, 4);
+});

@@ -6,7 +6,8 @@ export const MODES = [
   {id:'leo', lv:0, name:'Earth orbit', short:'Station', oneWayS:0.25, reviewH:1, k:1, evac:'Return to Earth possible within hours', grav:'Microgravity', dose:0.3, len:180, black:0},
   {id:'moon', lv:1, name:'Lunar', short:'Moon base', oneWayS:1.3, reviewH:2, k:1.5, evac:'Return to Earth in 3 to 5 days', grav:'One-sixth of Earth gravity', dose:1.0, len:180, black:0},
   {id:'transit', lv:2, name:'Mars transit', short:'Deep space', oneWayS:720, reviewH:8, k:3, evac:'No return possible', grav:'Microgravity', dose:1.64, len:210, black:14},
-  {id:'mars', lv:3, name:'Mars surface', short:'Mars base', oneWayS:1200, reviewH:12, k:3, evac:'No return possible', grav:'Three-eighths of Earth gravity', dose:0.73, len:500, black:14}
+  {id:'mars', lv:3, name:'Mars surface', short:'Mars base', oneWayS:1200, reviewH:12, k:3, evac:'No return possible', grav:'Three-eighths of Earth gravity', dose:0.73, len:500, black:14},
+  {id:'rover', lv:4, name:'Pressurized rover', short:'Rover', oneWayS:1200, reviewH:16, k:3.5, evac:'Drive back to the Mars base: 1 to 3 days', grav:'Three-eighths of Earth gravity', dose:0.85, len:500, black:0, co2:0.7, note:'Small cabin, thinner shielding and a limited medical kit; ground reviews go through the base relay.'}
 ];
 export const HAZ = {rad:'Space radiation', iso:'Isolation and confinement', dist:'Distance from Earth', grav:'Gravity fields', env:'Hostile closed environment'};
 export const R = 'https://www.nasa.gov/reference/';

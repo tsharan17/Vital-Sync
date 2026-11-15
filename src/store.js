@@ -23,6 +23,11 @@ export function load() {
   const p = makeDemo();
   return { current: p.id, profiles: [p] };
 }
+// Returns 'ok', 'nophotos' (storage was full, so the log was saved without photos) or 'failed'.
 export function save(db) {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* storage full or blocked: keep working in memory */ }
+  try { localStorage.setItem(KEY, JSON.stringify(db)); return 'ok'; } catch (e) { /* storage full: retry without photos */ }
+  try {
+    const lite = JSON.stringify(db, (k, v) => k === 'photo' ? undefined : v);
+    localStorage.setItem(KEY, lite); return 'nophotos';
+  } catch (e) { return 'failed'; /* storage blocked: keep working in memory */ }
 }

@@ -53,7 +53,7 @@ export function cabinTelemetry(day, mode, seed = 5) {
   const r = () => { t += 0x6D2B79F5; let x = Math.imul(t ^ (t >>> 15), 1 | t); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
   const flare = r() < 0.03;
   const v = {
-    co2: +(2.4 + 0.9 * r() + (day % 23 === 0 ? 2.4 : 0)).toFixed(1),
+    co2: +(2.4 + (mode.co2 || 0) + 0.9 * r() + (day % 23 === 0 ? 2.4 : 0)).toFixed(1),
     o2: +(20.9 + (r() - 0.5) * 0.8).toFixed(1),
     rad: +(mode.dose * (0.85 + 0.3 * r()) * (flare ? 6 : 1)).toFixed(2),
     temp: +(22 + (r() - 0.5) * 3).toFixed(1),
@@ -61,3 +61,18 @@ export function cabinTelemetry(day, mode, seed = 5) {
   };
   return { v, flare, levels: Object.fromEntries(ENV.map(e => [e.id, envStatus(e.id, v[e.id])])) };
 }
+
+// Camera input: match the average colour of a photo region to the nearest swatch of a reference chart.
+// Distance is measured in a simple perceptual space (weighted RGB), good enough to suggest a chart shade
+// that the astronaut then confirms by eye.
+export const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+export function nearestSwatch(rgb, palette) {
+  let best = 0, bd = Infinity;
+  palette.forEach((hex, k) => {
+    const [r, g, b] = hexRgb(hex), rm = (rgb[0] + r) / 2, dr = rgb[0] - r, dg = rgb[1] - g, db = rgb[2] - b;
+    const d = (2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db;
+    if (d < bd) { bd = d; best = k; }
+  });
+  return { index: best, distance: Math.sqrt(bd) };
+}
+export const URINE_CHART = ['#fbf6d0', '#f7ee9e', '#f1e36b', '#e9d33e', '#dcbb24', '#c99a1b', '#a8761a', '#7c5418'];

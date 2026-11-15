@@ -11,6 +11,7 @@ import { themePref, setTheme, applyTheme, resolve } from './theme.js';
 import { briefHTML, stampHTML, BRIEF } from './views/overlays.js';
 import { guideLines, guideTitle, sessionLines, debriefLines, reportLines } from './narration.js';
 import { mountDock } from './dock.js';
+import { openCamera, readFile, clearPhoto } from './camera.js';
 import { artFor } from './art.js';
 import { timerAction, mountTimers, onTimerDone, resetTimers, timerState } from './timer.js';
 import { starfield } from './starfield.js';
@@ -56,7 +57,7 @@ const modeOf = p => MODES.find(x => x.id === p.mode) || MODES[3];
 // The app always opens on the clearance: tests first, results after.
 const defaultRoute = () => 'check-in';
 const route = () => { const h = location.hash.slice(1); return VIEWS[h] ? h : ALIAS[h] || defaultRoute(); };
-const persist = () => save(db);
+const persist = () => { const r = save(db); if (r === 'nophotos') S.msg = 'Device storage is full: your log is saved, but the newest photos are only kept until you close the app.'; else if (r === 'failed') S.msg = 'Could not save to this device. Your data is kept until you close the app.'; return r; };
 
 function ctx(forDay) {
   const P = prof(), m = modeOf(P), ld = lastDay(), day = forDay ?? Math.min(S.viewDay ?? ld, ld);
@@ -228,6 +229,8 @@ function act(e) {
     case 'au-debrief': player.play('Flight surgeon debrief', debriefLines(ctx())); return;
     case 'au-session': player.play('Guided session: talk me through it', sessionLines()); return;
     case 'au-report': { const t = document.getElementById('rep'); if (t) player.play('Ground report', reportLines(t.value)); return; }
+    case 'cam-open': openCamera(b.dataset.type, () => render()); return;
+    case 'cam-clear': clearPhoto(b.dataset.type); break;
     case 'theme-flip': setTheme(resolve(themePref()) === 'light' ? 'satellite' : 'light'); sfx.select(); break;
     case 'au-sfx': { const k = b.dataset.s; if (isMuted()) { S.msg = ''; } (sfx[k] || sfx.blip)(k === 'klaxon' ? 2 : undefined); return; }
     case 'au-vtest': voice.say('This is your audio coach. A reading sounds like this: one hundred eighteen over seventy six.', true); return;
@@ -377,6 +380,7 @@ export function start() {
     }
     else if (t.id === 'mode') { P.mode = t.value; if (!modeOf(P).black) P.blackout = false; persist(); sfx.select(); render(); }
     else if (t.id === 'black') { P.blackout = t.checked; persist(); render(); }
+    else if (t.dataset && t.dataset.photo) { readFile(t.dataset.photo, t.files && t.files[0]).then(() => render()); }
     else if (t.id === 'theme') { setTheme(t.value); sfx.select(); render(); document.getElementById('theme')?.focus(); }
     else if (t.id === 'vol') sfx.blip();
     else if (t.id === 'vname') { voice.setSettings({ name: t.value }); voice.say('Voice changed.', true); }

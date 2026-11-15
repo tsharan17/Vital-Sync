@@ -626,3 +626,19 @@ body.modal-open { overflow: hidden; }
 .deckbody { display: grid; gap: 6px; padding: 14px 16px 16px; }
 .deckbody b { font-size: 17px; }
 @media (prefers-reduced-motion: no-preference) { .deckcard { transition: transform .18s, border-color .15s, box-shadow .2s; } .deckcard:hover { transform: translateY(-3px); } }
+
+/* camera input */
+.photobar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.photobar .btn { min-height: 42px; padding: 8px 14px; font-size: 14px; }
+.filebtn { position: relative; overflow: hidden; cursor: pointer; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+.filebtn:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pv { display: inline-flex; align-items: center; gap: 8px; }
+.pv img, .thumb { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.lastlog { display: flex; gap: 10px; align-items: center; }
+.btn.suggest { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--blue) !important; }
+.cam { width: min(640px, 100%); }
+.camview { position: relative; margin: 12px 0; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.camview video { width: 100%; height: 100%; object-fit: cover; }
+.camwait { position: absolute; color: #fff; padding: 20px; text-align: center; }
+.camtarget { position: absolute; left: 30%; top: 30%; width: 40%; height: 40%; border: 3px dashed #fff; border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .25); }
