@@ -1,0 +1,7 @@
+// Shared HUD pieces.
+export function gauge(rd, size = 150) {
+  const C = 2 * Math.PI * 60, l = rd.score >= 85 ? 0 : rd.score >= 70 ? 1 : rd.score >= 50 ? 2 : 3;
+  const ticks = Array.from({ length: 40 }, (_, k) => { const a = k / 40 * 2 * Math.PI; return `<line x1="${75 + 70 * Math.sin(a)}" y1="${75 - 70 * Math.cos(a)}" x2="${75 + 66 * Math.sin(a)}" y2="${75 - 66 * Math.cos(a)}" stroke="rgba(0,229,255,.35)"/>`; }).join('');
+  return `<div class="gauge s${l}"><svg viewBox="0 0 150 150" role="img" aria-label="Mission readiness ${rd.score} percent">${ticks}<circle cx="75" cy="75" r="60" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle cx="75" cy="75" r="60" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C * rd.score / 100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 75 75)" style="filter:drop-shadow(0 0 8px currentColor)"/><text x="75" y="80" text-anchor="middle" style="font:700 32px ui-monospace,Menlo,monospace;fill:#e2f7ff">${rd.score}%</text><text x="75" y="100" text-anchor="middle" style="font:600 9px ui-monospace,Menlo,monospace;fill:#8ea8c3;letter-spacing:.12em">READINESS</text></svg>
+  <dl><dt>Cardiovascular</dt><dd>${rd.cardio}%</dd><dt>Sleep reserve</dt><dd>${rd.sleep}%</dd><dt>Cognitive</dt><dd>${rd.cognitive}%${rd.cogMeasured ? '' : ' <span class="small soft">(default)</span>'}</dd></dl></div>`;
+}

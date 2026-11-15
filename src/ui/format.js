@@ -31,9 +31,10 @@ export function forecastText(a) {
 export function reason(a) {
   const i = a.ind, bits = [];
   if (a.none) return '';
-  if (a.st === 2) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is in the alert range.`);
+  if (a.popOnly) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is outside the population range but normal for you.`);
+  else if (a.st === 2) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is in the alert range.`);
   else if (a.st === 1) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is in the caution range.`);
-  else if (a.drift) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is still in the normal range, but it has moved ${Math.abs(a.z).toFixed(1)} standard deviations from your baseline of ${fmt(a.bm, i)}.`);
+  else if (a.drift || a.pers) bits.push(`Latest value ${fmt(a.val, i)} ${i.unit} is still in the normal range, but it has moved ${Math.abs(a.z).toFixed(1)} standard deviations from your baseline of ${fmt(a.bm, i)}.`);
   if (a.dEarly != null) bits.push(forecastText(a) + ` Getting effective help from Earth takes about ${a.loop.toFixed(1)} days from here.`);
   return bits.join(' ');
 }

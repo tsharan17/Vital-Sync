@@ -21,6 +21,9 @@ export function reportText(ctx) {
   o.push('', '3. ANSWERS TO LIKELY QUESTIONS');
   for (const a of A.filter(a => a.level === 0 && !a.none)) o.push(`- ${a.ind.name}: ${fmt(a.val, a.ind)} ${a.ind.unit}, nominal, baseline ${fmt(a.bm, a.ind)}`);
   const sd = sleepDebt(P.log, day), im = immune(P.log, day, A), bn = bone(P.log, day);
+  const le = P.log.find(e => e.d === day);
+  if (le && le.sx) o.push(`- Symptoms today: ${le.sx.length ? le.sx.join(', ') : 'none'}`);
+  if (le && le.q) o.push(`- Wellbeing (1 to 5): stress ${le.q.stress}, isolation ${le.q.isolation}, confinement ${le.q.confinement ?? 'n/a'}`);
   o.push(`- Sleep debt, 7 nights: ${sd.debt.toFixed(1)} h`, `- Exercise, 28-day average: ${bn.avg == null ? 'n/a' : bn.avg.toFixed(0)} min a day`, `- Immune risk window: ${['closed', 'one factor', 'open'][im.state]}`);
   o.push('', '4. ACTIONS ALREADY TAKEN ON BOARD');
   const tk = Object.keys(P.taken[day] || {}).filter(k => P.taken[day][k]);
@@ -31,7 +34,7 @@ export function reportText(ctx) {
 
 export function view(ctx) {
   const { P, A, m, day } = ctx, top = rank(A)[0], steps = top.level ? stepsFor(top) : [], tk = P.taken[day] || {};
-  const band = `<section class="band"><div class="wrap"><h1>Ground link</h1><p class="lede">A report for flight surgeons that states the request first and answers their likely questions, because each exchange from ${m.name.toLowerCase()} costs ${dur(m.oneWayS * 2)} of signal time plus review.</p></div></section>`;
+  const band = `<section class="band"><div class="wrap"><div class="frame"><div class="kicker">ASYNCHRONOUS GROUND LINK</div><h1>Ground link</h1><p class="lede">A report for flight surgeons that states the request first and answers their likely questions, because each exchange from ${m.name.toLowerCase()} costs ${dur(m.oneWayS * 2)} of signal time plus review.</p></div></div></section>`;
   return band + `<div class="wrap page grid two">
   <section class="panel"><h2>Report for day ${day}</h2><textarea id="rep" readonly aria-label="Report text" style="margin-top:14px;min-height:360px">${esc(reportText(ctx))}</textarea><p style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-act="copy" data-src="rep">Copy report</button><span class="small soft" role="status"></span></p></section>
   <section class="panel"><h2>Actions already taken</h2>${steps.length ? `<p class="soft" style="margin:8px 0 14px">Tick what you have done. Ticked actions go into section 4 of the report.</p><ul class="plain">${steps.map(s => `<li><label class="chk"><input type="checkbox" data-take="${esc(s)}" data-day="${day}" ${tk[s] ? 'checked' : ''}><span>${s}</span></label></li>`).join('')}</ul>` : '<p style="margin-top:8px">Nothing is flagged today, so there are no actions to record.</p>'}</section>

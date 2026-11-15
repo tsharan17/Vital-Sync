@@ -4,3 +4,5 @@ export * from './indicators.js';
 export * from './analysis.js';
 export * from './modules.js';
 export * from './simulate.js';
+export * from './cognitive.js';
+export * from './gamification.js';

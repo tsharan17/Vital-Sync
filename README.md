@@ -14,12 +14,18 @@ The health risks of long missions, such as rising blood pressure, sleep debt, lo
 
 ## What Vital Sync does
 
-1. **Daily check-in.** A guided, three-minute check-in records heart rate, blood pressure, temperature, blood sugar, sleep, mood and exercise. Readings that are drifting are asked first. Each value is shown live against your normal, caution and alert zones and against your own usual value.
-2. **Today's assessment.** Saving the check-in updates the crew member's log, compares every reading with their personal baseline and recalculates the forecasts. The result screen says what changed since yesterday and what to do now.
-3. **Lead-time margin.** For each reading, Vital Sync fits a trend, estimates how many days remain before it crosses a limit (with an uncertainty range), and compares that with how long help from Earth takes at the current location. When the margin runs out, it asks the astronaut to act on board.
-4. **Body scan.** A rotating 3D human shows each body region in its status colour; selecting a region opens its readings, guidance and NASA risk links.
-5. **Body systems.** Sleep debt, an immune risk window, a radiation passport and a bone and muscle budget combine readings that build up over a mission.
-6. **Ground link.** A report for flight surgeons that states the request first and answers their likely questions, to save round trips.
+1. **Pre-flight health clearance (daily check-in).** Heart rate, blood pressure, blood oxygen (SpO2), breathing rate, temperature, blood sugar when due, sleep, fatigue (Samn-Perelli scale), a short wellbeing check (stress, isolation, confinement) and symptoms. Readings that are drifting come first. Every test has an animated timer with audio cues: a 5-minute seated rest before blood pressure, a 60-second pulse count with tap counting, 20 s for the oximeter, a 60-second breathing count, a 30-second thermometer dwell and a 15-second glucose strip.
+2. **Guided technique.** Step-by-step instructions with diagrams for the cuff (lower edge 2–3 cm above the elbow crease), pulse, oximeter, thermometer and lancet. An optional voice coach reads the steps, and hands-free voice logging understands phrases like "one eighteen over seventy six" and asks for confirmation.
+3. **Personal baselines.** A reading is judged against the astronaut's own normal, entered before flight or learned during the mission: within 1.5 standard deviations is nominal, beyond 2.5 is caution. So 90/60 is normal for someone who always runs low, while a jump to 115/80 is flagged as drift. Textbook alert limits always apply.
+4. **Lead-time margin.** For each reading, Vital Sync fits a trend, estimates how many days remain before it crosses a limit, and compares that with how long help from Earth takes at the current location.
+5. **Today and mission readiness.** Clearance status, a 0–100% readiness gauge (cardiovascular, sleep reserve, cognitive), daily and weekly quests, experience points, ranks from Flight Cadet to Mission Commander, and four earned badges.
+6. **Cognitive battery.** A psychomotor vigilance test (reaction time), a sequence memory test and a 15-second tracking test, combined into a 0–100 score.
+7. **Mission protocol.** Daily, weekly (cognitive battery, tumbling-E vision check, grip strength, single-leg balance) and periodic tasks (ECG, ultrasound notes, dosimeter, hydration colour chart), with due tasks highlighted.
+8. **Body scan.** A 3D human with hotspots; selecting one zooms the camera in and opens a diagnostic card with readings, guidance and NASA risk links.
+9. **Body systems and cabin.** Sleep debt, immune window, radiation passport, bone and muscle budget, plus cabin CO2, O2, radiation, temperature and humidity, with a CO2 alert above 5.0 mmHg.
+10. **Ground link.** A report for flight surgeons that states the request first, now including symptoms and wellbeing.
+
+Sound effects and the voice coach can be switched off from the top bar.
 
 Status always uses shape and colour together: circle (nominal), diamond (watch), triangle (tell the crew medical officer), square (contact flight surgeons).
 
@@ -37,14 +43,14 @@ All research sources and reference ranges are listed on the app's **About** page
 
 ## Validation on simulated missions
 
-`npm test` and the in-app **Demo and validation** page run the detection test. Results below are for the Mars surface setting over four random seeds. They come from simulated data: they show the method works as designed, not that it works for real crews.
+`npm test` and the in-app **Demo and validation** page run the detection test. Results below are for the Mars surface setting over four random seeds, re-measured after the personal-baseline update. They come from simulated data: they show the method works as designed, not that it works for real crews.
 
 | Scenario | Vital Sync first flag vs fixed threshold |
 | --- | --- |
-| Silent blood pressure climb (starts day 60) | 35 to 66 days earlier |
-| Brewing infection (starts day 100) | Temperature 0 to 2 days earlier; heart-rate rise flagged, never crossed a fixed threshold |
-| Sleep and mood slide (starts day 70) | Mixed: from 1 day later to 40 days earlier |
-| Healthy mission | 0.32% of reading-days falsely flagged |
+| Silent blood pressure climb (starts day 60) | 43 to 66 days earlier |
+| Brewing infection (starts day 100) | Temperature 1 to 6 days earlier; heart-rate rise flagged, never crossed a fixed threshold |
+| Sleep and mood slide (starts day 70) | Sleep from 3 days later to 11 days earlier; mood 5 to 34 days earlier |
+| Healthy mission | 0.33% of reading-days falsely flagged |
 
 ## Run it locally
 
@@ -77,8 +83,10 @@ firebase deploy --only hosting
 
 ```
 src/
-  engine/        pure functions: indicators, analysis, modules, simulator (tested)
-  ui/            app shell, charts, 3D body, and one file per screen in views/
+  engine/        pure functions: indicators, analysis, modules, cognitive scoring,
+                 gamification, simulator (tested)
+  ui/            app shell, charts, 3D body, timers, tutorials, sound, voice,
+                 and one file per screen in views/
   styles/        main.css
   store.js       crew profiles and logs in local storage
 tests/           engine tests (node:test)
@@ -92,10 +100,14 @@ All data stays in the browser's local storage on the device. Logs can be downloa
 - The response-loop review times and safety factors are our assumptions; the signal delays follow published figures.
 - The bone and radiation modules are illustrative models, labelled as such in the app.
 - Validation so far uses simulated data only.
+- A reading that is outside the textbook caution range but normal for the person is shown as normal; personal-only flags go no higher than "tell the crew medical officer".
+- The wellbeing questions are not a validated instrument. The vision test is not a calibrated eye chart. The reaction-time test is shortened to 60 seconds (the NASA version runs 3 minutes).
+- Cabin telemetry is simulated. Voice logging needs Chrome or Edge and a network connection.
+- Breathing rate is counted without a pacer, because pacing would change the count.
 
 ## Use of AI tools
 
-The code in this repository was generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team. Research summaries were prepared with the same tool and checked against the linked sources. No AI-generated images, audio or video are used, and no NASA logos or mission identifiers appear.
+The code in this repository was generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team. Research summaries were prepared with the same tool and checked against the linked sources. Sound effects are synthesised in the browser with the Web Audio API. No AI-generated images, audio or video are used, and no NASA logos or mission identifiers appear.
 
 ## Licence
 

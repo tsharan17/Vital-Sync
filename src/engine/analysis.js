@@ -20,7 +20,7 @@ export function regress(pts) {
   return {b, a, se, t: b / se, n, from: pts[0].d};
 }
 
-export function analyze(log, ind, day, mode, blackout) {
+export function analyze(log, ind, day, mode, blackout, pre) {
   const pts = []; for (const e of log) if (e.d <= day && e.v[ind.id] != null) pts.push({d: e.d, v: e.v[ind.id]});
   const loop = respLoop(mode, ind, blackout);
   if (!pts.length) return {ind, none: true, st: 0, drift: 0, level: 0, loop, pts};
@@ -30,7 +30,9 @@ export function analyze(log, ind, day, mode, blackout) {
   const st = statusOf(ind, val);
   let bw = pts.filter(p => p.d > ADAPT && p.d <= ADAPT + BASE_N), provisional = false;
   if (bw.length < 10) { if (bw.length < 5) bw = pts.slice(0, Math.min(pts.length, BASE_N)); provisional = true; }
-  const bm = mean(bw.map(p => p.v)), bsd = Math.max(sdev(bw.map(p => p.v)), ind.sdMin);
+  let bm = mean(bw.map(p => p.v)), bsd = Math.max(sdev(bw.map(p => p.v)), ind.sdMin), preflight = false;
+  const pb = pre && pre[ind.id];
+  if (pb && isFinite(pb.m) && isFinite(pb.s)) { bm = +pb.m; bsd = Math.max(+pb.s, ind.sdMin); provisional = false; preflight = true; }
   const r7 = tail(7).length ? mean(tail(7)) : last.v;
   const z = (r7 - bm) / bsd;
   const hi = ind.bad !== 'low', lo = ind.bad !== 'high';
@@ -53,9 +55,15 @@ export function analyze(log, ind, day, mode, blackout) {
   if (!provisional && ((sig && dirBad && zbad >= 1) || zbad >= 2.2)) drift = 1;
   if (drift && ((dEarly != null && dEarly <= mode.k * loop) || zbad >= 3.5)) drift = 2;
   const margin = dEarly != null ? dEarly - loop : null;
-  const level = st === 2 ? 3 : (st === 1 || drift === 2) ? 2 : drift === 1 ? 1 : 0;
+  // Personal baseline status: the 7-day mean against your own distribution (within 1.5 sd nominal, 1.5 to 2.5 watch, beyond 2.5 caution).
+  // Population alert limits always apply as a hard safety floor. A population caution value that is normal for you is not flagged.
+  const pers = provisional ? null : (zbad < 1.5 ? 0 : zbad < 2.5 ? 1 : 2);
+  const zNow = (val - bm) / bsd, zNowBad = ((zNow > 0 && hi) || (zNow < 0 && lo)) ? Math.abs(zNow) : 0;
+  const popOnly = !provisional && st === 1 && zNowBad < 1.5;
+  const popLevel = st === 2 ? 3 : st === 1 ? (popOnly ? 0 : 2) : 0;
+  const level = Math.max(popLevel, pers ?? 0, drift === 2 ? 2 : drift);
   const onboard = level >= 2 && margin != null && margin < 0;
-  return {ind, pts, last, val, st, bm, bsd, provisional, r7, z, zbad, fit, sig, dirBad, cur, limit, limName, dEarly, dMid, dLate, loop, margin, drift, level, onboard};
+  return {ind, pts, last, val, st, bm, bsd, provisional, preflight, pers, popOnly, r7, z, zbad, fit, sig, dirBad, cur, limit, limName, dEarly, dMid, dLate, loop, margin, drift, level, onboard};
 }
-export const analyzeAll = (log, day, mode, blackout) => IND.map(i => analyze(log, i, day, mode, blackout));
+export const analyzeAll = (log, day, mode, blackout, pre) => IND.map(i => analyze(log, i, day, mode, blackout, pre));
 

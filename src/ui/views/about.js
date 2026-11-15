@@ -5,7 +5,7 @@ import { dur } from '../format.js';
 const row = (t, u, n) => `<tr><td><a href="${u}">${t}</a></td><td>${n}</td></tr>`;
 
 export function view() {
-  const band = `<section class="band"><div class="wrap"><h1>Catch it before it's urgent.</h1><p class="lede">Vital Sync helps an astronaut with no medical training notice slow, silent changes in their own body and decide what to do when Earth is too far away to answer in time.</p></div></section>`;
+  const band = `<section class="band"><div class="wrap"><div class="frame"><div class="kicker">MISSION BRIEFING</div><h1>Catch it before it's urgent.</h1><p class="lede">Vital Sync helps an astronaut with no medical training notice slow, silent changes in their own body and decide what to do when Earth is too far away to answer in time.</p></div></div></section>`;
   return band + `<div class="wrap page grid">
   <section class="panel"><h2>How the lead-time margin works</h2><ol class="grid how" style="margin-top:22px">
     <li><h3>Learn your normal</h3><p>After the first two weeks of adaptation, the app builds your personal baseline from your own readings.</p></li>

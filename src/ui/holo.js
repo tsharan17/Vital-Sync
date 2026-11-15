@@ -8,7 +8,7 @@ export const onPick = fn => { pickRegion = fn; };
 
 export const Holo = (() => {
   let R, scene, cam, group, halo, scan, host, ro, raf = 0, rotY = 0.45, dragging = false, moved = 0, lastX = 0, sel = null, t = 0, failed = false;
-  let bodyMat, bodyMesh; const KEYS = ['head', 'chest', 'core', 'legs'], lev = {head: 0, chest: 0, core: 0, legs: 0}, BASE = [0.12, 0.3, 0.55, 0.78], COLS = ['#3d59ab', '#2e6be6', '#f5a524', '#fc3d21'], COB = '#3d59ab', still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let bodyMat, bodyMesh; const KEYS = ['head', 'chest', 'core', 'legs'], lev = {head: 0, chest: 0, core: 0, legs: 0}, BASE = [0.12, 0.3, 0.55, 0.78], COLS = ['#00e5ff', '#5ad8ff', '#ffb703', '#ff2a5f'], COB = '#00e5ff', HOT = {head: [0, 3.84, 0.42], chest: [0.24, 2.5, 0.52], core: [0, 1.12, 0.52], legs: [0.42, -0.92, 0.28]}, hots = {}; let wire, focusKey = null, camY = 0.6, camZ = 15.5, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   /* Human form: a signed distance field of blended ellipsoids and tapered capsules, meshed with surface nets. Units are metres, feet at y = 0. */
   function sdf(x, y, z) {
     const ax = Math.abs(x);
@@ -76,22 +76,31 @@ export const Holo = (() => {
       idx.push(o[0], o[1], o[2], o[0], o[2], o[3]);
     }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('normal', new T.BufferAttribute(nor, 3)); g.setIndex(idx);
-    const v4 = () => new T.Vector4(0.24, 0.35, 0.67, 0.12);
-    bodyMat = new T.ShaderMaterial({transparent: true, depthWrite: false, uniforms: {uH: {value: v4()}, uC: {value: v4()}, uK: {value: v4()}, uL: {value: v4()}, uA: {value: new T.Vector4(0.24, 0.35, 0.67, 0.12)}},
+    const v4 = () => new T.Vector4(0, 0.9, 1, 0.12);
+    bodyMat = new T.ShaderMaterial({transparent: true, depthWrite: false, uniforms: {uH: {value: v4()}, uC: {value: v4()}, uK: {value: v4()}, uL: {value: v4()}, uA: {value: new T.Vector4(0, 0.9, 1, 0.1)}},
       vertexShader: 'varying vec3 vN;varying vec3 vV;varying vec3 vP;void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vP=position;vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
       fragmentShader: 'uniform vec4 uH;uniform vec4 uC;uniform vec4 uK;uniform vec4 uL;uniform vec4 uA;varying vec3 vN;varying vec3 vV;varying vec3 vP;void main(){float y=vP.y;float ax=abs(vP.x);vec4 c=uL;c=mix(c,uK,smoothstep(0.87,0.93,y));c=mix(c,uC,smoothstep(1.16,1.22,y));c=mix(c,uH,smoothstep(1.47,1.53,y));float arm=smoothstep(0.18,0.21,ax)*smoothstep(0.66,0.72,y)*(1.0-smoothstep(1.43,1.49,y));c=mix(c,uA,arm);float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),1.4);gl_FragColor=vec4(c.rgb,clamp(c.a+(1.0-c.a)*f*0.92,0.0,1.0));}'});
     bodyMesh = new T.Mesh(g, bodyMat); bodyMesh.userData.key = 'body';
+    wire = new T.LineSegments(new T.WireframeGeometry(g), new T.LineBasicMaterial({color: '#00e5ff', transparent: true, opacity: 0.05, blending: T.AdditiveBlending, depthWrite: false}));
+    bodyMesh.add(wire);
     return bodyMesh;
   }
   function init() {
     if (failed) return false; if (R) return true;
     const T = THREE;
     try { R = new T.WebGLRenderer({antialias: true, alpha: true}); } catch (err) { failed = true; return false; }
-    R.outputColorSpace = T.LinearSRGBColorSpace; R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.setClearColor(0xffffff, 0);
+    R.outputColorSpace = T.LinearSRGBColorSpace; R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.setClearColor(0x000000, 0);
     scene = new T.Scene(); cam = new T.PerspectiveCamera(30, 1, 0.1, 100); cam.position.set(0, 0.6, 15.5); cam.lookAt(0, 0.6, 0);
     group = new T.Group(); const body = buildBody(T); body.scale.setScalar(4.25); body.position.y = -3.13; group.add(body);
     const pad = new T.Mesh(new T.RingGeometry(1.25, 1.3, 80), new T.MeshBasicMaterial({color: COB, transparent: true, opacity: 0.45, side: T.DoubleSide})); pad.rotation.x = Math.PI / 2; pad.position.y = -3.15; group.add(pad);
     const pad2 = new T.Mesh(new T.CircleGeometry(1.25, 80), new T.MeshBasicMaterial({color: COB, transparent: true, opacity: 0.07, side: T.DoubleSide})); pad2.rotation.x = Math.PI / 2; pad2.position.y = -3.16; group.add(pad2);
+    for (const k of KEYS) {
+      const h = new T.Group(), p = HOT[k];
+      const core = new T.Mesh(new T.SphereGeometry(0.11, 16, 12), new T.MeshBasicMaterial({color: COB, transparent: true, opacity: 0.95}));
+      const ring = new T.Mesh(new T.RingGeometry(0.2, 0.24, 40), new T.MeshBasicMaterial({color: COB, transparent: true, opacity: 0.8, side: T.DoubleSide, depthWrite: false}));
+      const hit = new T.Mesh(new T.SphereGeometry(0.42, 8, 6), new T.MeshBasicMaterial({transparent: true, opacity: 0, depthWrite: false}));
+      core.userData.key = k; hit.userData.key = k; h.add(core, ring, hit); h.position.set(p[0], p[1], p[2]); group.add(h); hots[k] = {h, core, ring};
+    }
     scene.add(group);
     halo = new T.Group();
     for (const [rx, rz, r] of [[1.25, 0.3, 2.7], [1.9, -0.5, 3.0]]) { const m = new T.Mesh(new T.TorusGeometry(r, 0.012, 6, 140), new T.MeshBasicMaterial({color: COB, transparent: true, opacity: 0.5})); m.rotation.set(rx, 0, rz); halo.add(m); }
@@ -102,21 +111,26 @@ export const Holo = (() => {
     el.setAttribute('role', 'img'); el.setAttribute('aria-label', 'Rotating 3D human body scan. Use the labels beside it to select a region.');
     el.addEventListener('pointerdown', ev => { dragging = true; moved = 0; lastX = ev.clientX; try { el.setPointerCapture(ev.pointerId); } catch (x) {} });
     el.addEventListener('pointermove', ev => { if (!dragging) return; const dx = ev.clientX - lastX; lastX = ev.clientX; moved += Math.abs(dx); rotY += dx * 0.01; });
-    el.addEventListener('pointerup', ev => { dragging = false; if (moved > 5) return; const bb = el.getBoundingClientRect(); v.set((ev.clientX - bb.left) / bb.width * 2 - 1, -((ev.clientY - bb.top) / bb.height) * 2 + 1); ray.setFromCamera(v, cam); const objs = []; scene.traverse(o => { if (o.userData && o.userData.key) objs.push(o); }); const hits = ray.intersectObjects(objs, false), hit = hits.find(q => q.object.userData.key !== 'halo') || hits[0]; if (!hit) return; let key = hit.object.userData.key; if (key === 'body') { const lp = bodyMesh.worldToLocal(hit.point.clone()); key = region(lp.x, lp.y); } if (key !== 'arms') pickRegion(key); });
+    el.addEventListener('pointerup', ev => { dragging = false; if (moved > 5) return; const bb = el.getBoundingClientRect(); v.set((ev.clientX - bb.left) / bb.width * 2 - 1, -((ev.clientY - bb.top) / bb.height) * 2 + 1); ray.setFromCamera(v, cam); const objs = []; scene.traverse(o => { if (o.userData && o.userData.key) objs.push(o); }); const hits = ray.intersectObjects(objs, false), hit = hits.find(q => HOT[q.object.userData.key]) || hits.find(q => q.object.userData.key !== 'halo') || hits[0]; if (!hit) return; let key = hit.object.userData.key; if (key === 'body') { const lp = bodyMesh.worldToLocal(hit.point.clone()); key = region(lp.x, lp.y); } if (key !== 'arms') pickRegion(key); });
     el.addEventListener('pointercancel', () => { dragging = false; });
     return true;
   }
   function size() { if (!host || !R) return; const w = host.clientWidth, hh = host.clientHeight; if (!w || !hh) return; R.setSize(w, hh, false); cam.aspect = w / hh; cam.fov = w / hh < 0.8 ? 40 : 30; cam.updateProjectionMatrix(); }
   function frame() {
     if (!R.domElement.isConnected) { raf = 0; return; }
-    t += 0.016; if (!dragging && !still) rotY += 0.004;
-    group.rotation.y = rotY; halo.rotation.y = -rotY * 0.6 + t * 0.15; scan.position.y = still ? 2 : 0.6 + Math.sin(t * 0.7) * 3.5;
+    t += 0.016;
+    if (focusKey) { if (!dragging) rotY += (Math.round(rotY / 6.2832) * 6.2832 - rotY) * 0.06; } else if (!dragging && !still) rotY += 0.004;
+    const ty = focusKey ? HOT[focusKey][1] : 0.6, tz = focusKey ? 7.2 : 15.5, k8 = still ? 1 : 0.07;
+    camY += (ty - camY) * k8; camZ += (tz - camZ) * k8; cam.position.set(0, camY, camZ); cam.lookAt(0, camY, 0);
+    group.rotation.y = rotY;
+    wire.material.opacity = focusKey ? 0.1 + 0.08 * Math.sin(t * 4) : 0.05;
+    for (const k of KEYS) { const o = hots[k], c = COLS[lev[k]], pulse = 1 + 0.35 * (0.5 + 0.5 * Math.sin(t * 3 + k.length)); o.core.material.color.set(c); o.ring.material.color.set(c); o.ring.quaternion.copy(cam.quaternion); o.ring.quaternion.premultiply(group.quaternion.clone().invert()); o.ring.scale.setScalar(k === focusKey ? pulse * 1.4 : pulse); o.ring.material.opacity = k === focusKey ? 1 : 0.55; } halo.rotation.y = -rotY * 0.6 + t * 0.15; scan.position.y = still ? 2 : 0.6 + Math.sin(t * 0.7) * 3.5;
     const U = {head: 'uH', chest: 'uC', core: 'uK', legs: 'uL'}; for (const k of KEYS) { const c = new THREE.Color(COLS[lev[k]]), a = BASE[lev[k]] + (k === sel ? 0.1 + 0.1 * Math.sin(t * 3.2) : 0); bodyMat.uniforms[U[k]].value.set(c.r, c.g, c.b, Math.min(0.95, a)); }
     R.render(scene, cam); raf = requestAnimationFrame(frame);
   }
-  function mount(el, L, selected) {
+  function mount(el, L, selected, focus) {
     if (!init()) return false;
-    host = el; sel = selected; el.prepend(R.domElement);
+    host = el; sel = selected; focusKey = focus && HOT[focus] ? focus : null; if (focusKey) sel = focusKey; el.prepend(R.domElement);
     for (const k of KEYS) lev[k] = L[k];
     halo.children.forEach(m => { if (!m.userData.key) { m.material.color.set(L.halo ? COLS[L.halo] : COB); m.material.opacity = [0.35, 0.6, 0.85, 1][L.halo]; } });
     if (ro) ro.disconnect(); if (window.ResizeObserver) { ro = new ResizeObserver(size); ro.observe(el); } size();

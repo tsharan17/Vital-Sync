@@ -32,3 +32,32 @@ export function readiness(A, log, day) {
 }
 export const cadence = a => (a.level >= 2) ? ['Twice a day', 0.5] : a.level === 1 ? ['Every day', 1] : [a.ind.cad === 1 ? 'Every day' : 'Every ' + a.ind.cad + ' days', a.ind.cad];
 
+
+// Spacecraft cabin environment. Limits follow common spacecraft practice; CO2 alert above 5.0 mmHg as specified for this app.
+export const ENV = [
+  { id: 'co2', name: 'Cabin carbon dioxide', unit: 'mmHg', dec: 1, nominal: [0, 3.0], caution: [0, 5.0], note: 'Raised carbon dioxide causes headaches and changes blood flow to the brain.' },
+  { id: 'o2', name: 'Cabin oxygen', unit: '%', dec: 1, nominal: [19.9, 21.9], caution: [19.5, 23.5], note: 'Low oxygen impairs thinking; high oxygen raises fire risk.' },
+  { id: 'rad', name: 'Radiation dose rate', unit: 'mSv/day', dec: 2, nominal: [0, 1.0], caution: [0, 2.0], note: 'A sudden rise points to a solar particle event: move to the shielded area.' },
+  { id: 'temp', name: 'Cabin temperature', unit: '°C', dec: 1, nominal: [18.3, 26.7], caution: [16, 29], note: 'Outside the comfort band, sleep and concentration suffer.' },
+  { id: 'rh', name: 'Cabin humidity', unit: '%', dec: 0, nominal: [25, 70], caution: [20, 75], note: 'Very dry air irritates eyes and airways; damp air feeds microbes.' }
+];
+export function envStatus(id, v) {
+  const e = ENV.find(x => x.id === id);
+  if (v >= e.nominal[0] && v <= e.nominal[1]) return 0;
+  if (v >= e.caution[0] && v <= e.caution[1]) return 1;
+  return 2;
+}
+// Simulated cabin telemetry for a mission day, seeded so the same day always shows the same values.
+export function cabinTelemetry(day, mode, seed = 5) {
+  let t = (day * 2654435761 + seed * 97) >>> 0;
+  const r = () => { t += 0x6D2B79F5; let x = Math.imul(t ^ (t >>> 15), 1 | t); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+  const flare = r() < 0.03;
+  const v = {
+    co2: +(2.4 + 0.9 * r() + (day % 23 === 0 ? 2.4 : 0)).toFixed(1),
+    o2: +(20.9 + (r() - 0.5) * 0.8).toFixed(1),
+    rad: +(mode.dose * (0.85 + 0.3 * r()) * (flare ? 6 : 1)).toFixed(2),
+    temp: +(22 + (r() - 0.5) * 3).toFixed(1),
+    rh: Math.round(45 + (r() - 0.5) * 20)
+  };
+  return { v, flare, levels: Object.fromEntries(ENV.map(e => [e.id, envStatus(e.id, v[e.id])])) };
+}
