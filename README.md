@@ -4,7 +4,7 @@
 
 Built by **Team V-Sync** (Sharan, Vedanti) for the **NASA Space Apps Challenge 2026**, challenge *Create Health Monitoring Software for Astronauts on Space Missions*.
 
-**Live app: https://vital-sync-three.vercel.app**
+**Live app: https://vitalsync-vsync.vercel.app**
 
 > Decision support for a prototype. Not a medical device and not a diagnosis.
 
