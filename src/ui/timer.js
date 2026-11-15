@@ -76,6 +76,7 @@ export function timerAction(act, id) {
   if (act === 't-tap') {
     if (!s.running) return false;
     s.taps++; s.cfg.tap === 'beats' ? sfx.beat() : sfx.blip();
+    { const art = document.querySelector(`#tm-${id} .art`) || document.querySelector(`[data-tmr="${id}"] .art`); if (art) { art.classList.remove('puff'); void art.offsetWidth; art.classList.add('puff'); } }
     const c = document.getElementById('tc-' + id); if (c) c.textContent = `${s.taps} ${s.cfg.tap}`;
     const tm = document.getElementById('tm-' + id); if (tm) { const a = tm.querySelector('.art svg'); if (a && a.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) a.animate([{ transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 260 }); }
     return false;

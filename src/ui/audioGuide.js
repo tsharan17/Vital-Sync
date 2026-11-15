@@ -3,7 +3,7 @@
 // Code generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team.
 const KEY = 'vital-sync-voice';
 let on = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
-let rec = null, queue = null;
+let rec = null;
 const SKEY = 'vital-sync-voice-set';
 const vset = (() => { try { return Object.assign({ rate: 0.92, name: '' }, JSON.parse(localStorage.getItem(SKEY) || '{}')); } catch (e) { return { rate: 0.92, name: '' }; } })();
 let volume = () => 0.8;
@@ -28,31 +28,13 @@ export const voice = {
   },
   say(text, force = false) {
     if ((!on && !force) || !this.canSpeak) return;
-    try { this.stopQueue(); speechSynthesis.cancel(); speechSynthesis.speak(this.utter(text)); } catch (e) { /* speech blocked: stay silent */ }
+    try { player.stop(); speechSynthesis.cancel(); speechSynthesis.speak(this.utter(text)); } catch (e) { /* speech blocked: stay silent */ }
   },
-  // Read a list of lines in order with pauses; onLine(i) fires as each line starts, onEnd(completed) at the end.
-  sayQueue(lines, { gap = 700, onLine, onEnd } = {}) {
-    if (!this.canSpeak) { onEnd && onEnd(false); return; }
-    this.stopQueue(); try { speechSynthesis.cancel(); } catch (e) {}
-    const q = queue = { i: -1, stopped: false, timer: null };
-    const next = () => {
-      if (q.stopped || queue !== q) return;
-      q.i++; if (q.i >= lines.length) { queue = null; onEnd && onEnd(true); return; }
-      const line = lines[q.i], wait = typeof line === 'object' ? line.pause || 0 : 0, text = typeof line === 'object' ? line.text : line;
-      onLine && onLine(q.i);
-      if (!text) { q.timer = setTimeout(next, wait); return; }
-      const u = this.utter(text); let done = false;
-      const fin = () => { if (done) return; done = true; q.timer = setTimeout(next, gap + wait); };
-      u.onend = fin; u.onerror = fin;
-      try { speechSynthesis.speak(u); } catch (e) { fin(); }
-      // Some browsers drop onend for long utterances: fall back to a length-based estimate.
-      setTimeout(fin, 1500 + text.length * 95 / vset.rate);
-    };
-    q.end = onEnd; next();
-  },
-  stopQueue() { if (queue) { const q = queue; q.stopped = true; clearTimeout(q.timer); queue = null; q.end && q.end(false); } },
-  get speaking() { return !!queue; },
-  hush() { this.stopQueue(); try { speechSynthesis.cancel(); } catch (e) {} },
+  // Compatibility wrappers: narration now runs through the player below.
+  sayQueue(lines, o = {}) { player.play(o.title || 'Voice guide', lines); },
+  stopQueue() { player.stop(); },
+  get speaking() { return player.st.status !== 'idle'; },
+  hush() { player.stop(); try { speechSynthesis.cancel(); } catch (e) {} },
   listen(onText, onEnd) {
     if (!SR) { onEnd && onEnd('unsupported'); return; }
     this.stop();
@@ -124,3 +106,43 @@ export function parseAny(text) {
   if (/percent|%/.test(t) && last >= 70 && last <= 100) return { spo2: last };
   return null;
 }
+
+// Narration player: one shared player with play, pause, resume, repeat and stop, shown in the audio dock.
+// Lines are strings or { text, pause, phase, head }. Pausing cancels the current line; resuming replays it from its start.
+const lineText = l => typeof l === 'object' ? l.text || '' : l;
+let tok = 0, timer = null;
+export const player = {
+  st: { title: '', lines: [], i: 0, status: 'idle' },
+  subs: new Set(),
+  on(fn) { this.subs.add(fn); return () => this.subs.delete(fn); },
+  emit() { for (const f of this.subs) { try { f(this.st); } catch (e) {} } },
+  get line() { return this.st.lines[this.st.i]; },
+  play(title, lines, at = 0) {
+    this._cut(); this.st = { title, lines, i: Math.max(0, Math.min(at, lines.length - 1)), status: 'playing' }; this._speak();
+  },
+  pause() { if (this.st.status !== 'playing') return; this._cut(); this.st.status = 'paused'; this.emit(); },
+  resume() { if (this.st.status !== 'paused') return; this.st.status = 'playing'; this._speak(); },
+  toggle() { this.st.status === 'playing' ? this.pause() : this.st.status === 'paused' ? this.resume() : this.st.lines.length && this.play(this.st.title, this.st.lines); },
+  repeat() { if (this.st.lines.length) this.play(this.st.title, this.st.lines, 0); },
+  back() { if (this.st.lines.length) this.play(this.st.title, this.st.lines, this.st.i - 1); },
+  next() { if (this.st.lines.length && this.st.i < this.st.lines.length - 1) this.play(this.st.title, this.st.lines, this.st.i + 1); },
+  stop() { if (this.st.status === 'idle') return; this._cut(); this.st = { ...this.st, status: 'idle' }; this.emit(); },
+  _cut() { tok++; clearTimeout(timer); try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch (e) {} },
+  _speak() {
+    const my = ++tok, line = this.line, text = lineText(line), wait = typeof line === 'object' ? line.pause || 0 : 0;
+    this.emit();
+    const advance = () => {
+      if (my !== tok) return; clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (my !== tok) return;
+        if (this.st.i >= this.st.lines.length - 1) { this.st = { ...this.st, status: 'idle', done: true }; this.emit(); return; }
+        this.st.i++; this._speak();
+      }, 650 + wait);
+    };
+    if (!text || !voice.canSpeak) { timer = setTimeout(advance, text ? 900 + text.length * 55 : 0); return; }
+    let fired = false; const fin = () => { if (fired) return; fired = true; advance(); };
+    try { const u = voice.utter(text); u.onend = fin; u.onerror = fin; speechSynthesis.speak(u); } catch (e) { fin(); return; }
+    // Some browsers drop the end event: fall back to a generous length-based estimate.
+    timer = setTimeout(() => { if (my === tok) fin(); }, 2000 + text.length * 100 / (voice.settings.rate || 1));
+  }
+};

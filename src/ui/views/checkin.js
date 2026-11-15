@@ -1,6 +1,6 @@
 // Pre-flight health clearance: guided daily check-in with procedure timers, instrument tutorials and voice logging.
 // Code generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team.
-import { IND, byId, statusOf, consultDays } from '../../engine/index.js';
+import { IND, byId, statusOf, consultDays, PSS4, PSS_OPTS, LONELY3, LONELY_OPTS, CONFINE, psychDue, pss4, lonely3 } from '../../engine/index.js';
 import { todayISO } from '../../store.js';
 import { esc, fmt, glyph, chip, ST_LEVEL } from '../format.js';
 import { timerHTML } from '../timer.js';
@@ -31,18 +31,18 @@ const TIMERS = {
     { k: 'bp-rest', seconds: 300, title: '5-minute pre-test rest', desc: 'Stay still, arm strapped at heart level, while fluid shifts settle. Breathe slowly with the glowing lungs.', art: 'lungs', anim: 'breath', calm: true, chimeAt: [60], runLabel: 'Resting', startSay: 'Starting five minute pre-test rest. Rest your arm at heart level and breathe slowly.', doneSay: 'Rest complete. Take your first blood pressure reading.' },
     { k: 'bp-gap', seconds: 60, title: '1-minute gap before the second reading', desc: 'Let the cuff deflate fully and wait while the arm refills, then take a second reading and enter the average.', art: 'stopwatch', chimeAt: [30], runLabel: 'Refilling', startSay: 'Starting one minute gap.', doneSay: 'Take your second reading now, then enter the average of the two.' }],
   spo2: [{ k: 'spo2', seconds: 20, title: '20-second signal stabilisation', desc: 'Keep the finger still in the clip until the timer ends, then read the steady value.', art: 'pulseox', runLabel: 'Stabilising', startSay: 'Hold still for twenty seconds.', doneSay: 'Signal stable. Read your oxygen level.' }],
-  rr: [{ k: 'rr', seconds: 60, title: '60-second breath count', desc: 'Breathe naturally and tap once for each breath. Do not slow or deepen your breathing; that would change the result.', art: 'lungs', tap: 'breaths', chimeAt: [30], runLabel: 'Counting', startSay: 'Breathe naturally. Tap once for each breath.', doneSay: 'Time. Your breath count has been entered.' }],
+  rr: [{ k: 'rr-settle', seconds: 32, title: '32-second breath pacer: settle first', desc: 'Follow the glowing lungs: in for 4 seconds, out for 4, four times. Then let your breathing return to normal before you start the count.', art: 'lungs', anim: 'breath', runLabel: 'Pacing', chimeAt: [16], startSay: 'Breathe in for four, and out for four, with the glowing lungs.', doneSay: 'Now breathe naturally. Start the sixty second count when you are ready.' },
+    { k: 'rr', seconds: 60, title: '60-second breath count', desc: 'Breathe naturally and tap once for each breath; the lungs pulse with every tap. Do not slow or deepen your breathing on purpose: the count must be your natural rate.', art: 'lungs', tap: 'breaths', chimeAt: [30], runLabel: 'Counting', startSay: 'Breathe naturally. Tap once for each breath.', doneSay: 'Time. Your breath count has been entered.' }],
   temp: [{ k: 'temp', seconds: 30, title: '30-second sensor dwell', desc: 'Hold the thermometer in place until the timer ends or the device beeps.', art: 'thermo', runLabel: 'Measuring', startSay: 'Hold the thermometer still for thirty seconds.', doneSay: 'Reading ready. Enter your temperature.' }],
   glu: [{ k: 'glu', seconds: 15, title: '15-second test strip countdown', desc: 'Start as the blood touches the strip. Most meters show the result when the countdown ends.', art: 'drop', runLabel: 'Analysing', startSay: 'Strip countdown started.', doneSay: 'Read your glucose result.' }]
 };
 const SAMN = ['Fully alert, wide awake', 'Very lively, responsive, but not at peak', 'Okay, somewhat fresh', 'A little tired, less than fresh', 'Moderately tired, let down', 'Extremely tired, very difficult to concentrate', 'Completely exhausted, unable to function effectively'];
-const WB = [['stress', 'How stressed do you feel?', 'none', 'extreme'], ['isolation', 'How cut off from home and others do you feel?', 'not at all', 'very'], ['confinement', 'How much is living in a small space wearing on you?', 'not at all', 'a lot']];
 export const SYMPTOMS = ['Headache', 'Blurred or changed vision', 'Nasal congestion', 'Back pain', 'Nausea or motion sickness', 'Sore throat or cough', 'Skin rash or irritation', 'Dizziness'];
 const EX = { id: 'ex', name: 'Exercise', unit: 'min', dec: 0, step: 5, min: 0, max: 300 };
 export const indOf = id => id === 'ex' ? EX : byId(id);
 export const fieldsOf = id => id === 'bp' ? ['sys', 'dia'] : [id];
 export const timerId = (D, k) => `ci-${D.day}-${k}`;
-export const VOICE_STEPS = ['hr', 'bp', 'spo2', 'rr', 'temp', 'glu', 'sleep', 'ex'];
+export const VOICE_STEPS = ['hr', 'bp', 'spo2', 'rr', 'temp', 'glu', 'sleep', 'wellbeing', 'ex'];
 
 export function initDraft(P, A) {
   const last = P.log[P.log.length - 1], update = !!last && last.date === todayISO(), day = update ? last.d : (last ? last.d + 1 : 1);
@@ -55,7 +55,8 @@ export function initDraft(P, A) {
   const core = ['hr', 'bp', 'spo2', 'rr', 'temp'].concat(gluDue ? ['glu'] : []).map((id, k) => ({ id, k, l: lvl(id) })).sort((a, b) => b.l - a.l || a.k - b.k);
   const steps = core.map(x => x.id).concat(['sleep', 'fatigue', 'wellbeing', 'symptoms', 'ex', 'review']);
   const q = { stress: (last && last.q && last.q.stress) || 2, isolation: (last && last.q && last.q.isolation) || 2, confinement: (last && last.q && last.q.confinement) || 2 };
-  return { steps, flagged: Object.fromEntries(core.map(x => [x.id, x.l]).concat([['sleep', lv('sleep')], ['fatigue', lv('fatigue')], ['wellbeing', lv('mood')]])), i: 0, v, q, sx: update && last.sx ? [...last.sx] : [], skip: {}, seen: {}, update, day, gluDue, heard: '' };
+  const pd = psychDue(P.log, day);
+  return { psychDue: pd, pss: [null, null, null, null], lon: [null, null, null], steps, flagged: Object.fromEntries(core.map(x => [x.id, x.l]).concat([['sleep', lv('sleep')], ['fatigue', lv('fatigue')], ['wellbeing', lv('mood')]])), i: 0, v, q, sx: update && last.sx ? [...last.sx] : [], skip: {}, seen: {}, update, day, gluDue, heard: '' };
 }
 
 function verdict(id, val, A) {
@@ -98,9 +99,9 @@ function reading(id, D, A, label) {
 
 function voiceBar(step, D) {
   if (!VOICE_STEPS.includes(step)) return '';
-  const ex = { hr: 'seventy two', bp: 'one eighteen over seventy six', spo2: 'ninety eight', rr: 'fourteen', temp: 'thirty six point eight', glu: 'eighty eight', sleep: 'seven point five', ex: 'one twenty' }[step];
+  const ex = { hr: 'pulse sixty two', bp: 'one eighteen over seventy six', spo2: 'SpO2 ninety eight percent', rr: 'fourteen breaths', temp: 'thirty six point eight', glu: 'eighty eight', sleep: 'seven point five', wellbeing: 'mood seven', ex: 'one twenty' }[step];
   if (!voice.canListen) return `<div class="voicebar small soft">Hands-free logging needs Chrome or Edge with microphone access. You can still type or drag.</div>`;
-  return `<div class="voicebar"><button class="mic" data-act="ci-mic" aria-pressed="${voice.listening}" aria-label="Log this reading by voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><span>Hands-free: tap the mic and say the value, for example “${ex}”.</span>${D.heard ? `<span class="heard">Heard: ${esc(D.heard)}</span>` : ''}</div>`;
+  return `<div class="voicebar"><button class="mic" data-act="ci-mic" aria-pressed="${voice.listening}" aria-label="Log this reading by voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><span>🎙️ Say ${step === 'wellbeing' ? 'your mood' : 'the reading'}, for example “${ex}”. You'll hear a tone when it's logged.</span>${D.heard ? `<span class="heard">Heard: ${esc(D.heard)}</span>` : ''}</div>`;
 }
 
 function stageBody(step, D, A, P) {
@@ -110,7 +111,7 @@ function stageBody(step, D, A, P) {
     const rows = ids.map(id => {
       const ind = byId(id), sk = D.skip[stepOf(id)], v = D.v[id];
       return `<tr><td>${ind.name}</td><td class="num">${sk ? 'Not measured' : fmt(v, ind) + ' <span class="small soft">' + ind.unit + '</span>'}</td><td>${sk ? '' : chip(ST_LEVEL[statusOf(ind, v)]).replace('Nominal', 'Normal range').replace('Tell CMO', 'Caution range').replace('Contact ground', 'Alert range')}</td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf(stepOf(id))}">Edit</button></td></tr>`;
-    }).join('') + `<tr><td>Mood</td><td class="num">${D.v.mood}<span class="small soft"> /10</span></td><td></td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf('wellbeing')}">Edit</button></td></tr>
+    }).join('') + `<tr><td>Mood</td><td class="num">${D.v.mood}<span class="small soft"> /10</span></td><td></td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf('wellbeing')}">Edit</button></td></tr>${D.psychDue ? `<tr><td>Weekly stress and loneliness</td><td class="num">${pss4(D.pss) ?? '–'}<span class="small soft"> /16</span> · ${lonely3(D.lon) ?? '–'}<span class="small soft"> /9</span></td><td>${pss4(D.pss) == null || lonely3(D.lon) == null ? '<span class="small soft">Incomplete: not saved</span>' : ''}</td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf('wellbeing')}">Edit</button></td></tr>` : ''}
       <tr><td>Symptoms</td><td>${D.sx.length ? esc(D.sx.join(', ')) : 'None'}</td><td></td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf('symptoms')}">Edit</button></td></tr>
       <tr><td>Exercise</td><td class="num">${D.v.ex} <span class="small soft">min</span></td><td></td><td><button class="btn ghost" data-act="ci-go" data-i="${D.steps.indexOf('ex')}">Edit</button></td></tr>`;
     return `<div class="scroll"><table class="rev"><thead><tr><th>Reading</th><th>Value</th><th>Range check</th><th><span class="sr">Edit</span></th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -119,11 +120,19 @@ function stageBody(step, D, A, P) {
   if (D.skip[step]) return `<p class="skipped">You marked this reading as not measured today. It will be left out of today's log.</p><div class="quick"><button data-act="ci-skip" data-id="${step}" aria-pressed="true">Measure it after all</button></div>`;
   if (step === 'fatigue') return `<div class="scale" role="group" aria-label="Samn-Perelli fatigue scale">${SAMN.map((t, k) => `<button data-act="ci-set" data-id="fatigue" data-val="${k + 1}" aria-pressed="${D.v.fatigue === k + 1}"><b>${k + 1}</b><span>${t}</span></button>`).join('')}</div><p class="small soft">Samn-Perelli 7-point fatigue scale, used in aviation and spaceflight fatigue research.</p>`;
   if (step === 'wellbeing') {
-    const worry = D.v.mood <= 3 || D.q.stress >= 5 || D.q.isolation >= 5;
-    return `<div><div class="lbl">Overall mood</div><div class="moods" role="group" aria-label="Mood from 1 to 10">${Array.from({ length: 10 }, (_, k) => k + 1).map(n => `<button data-act="ci-set" data-id="mood" data-val="${n}" aria-pressed="${Math.round(D.v.mood) === n}">${n}</button>`).join('')}</div></div>
-    <div class="likert">${WB.map(([k, q, lo, hi]) => `<div class="row"><span>${q}<br><span class="small soft">1 ${lo}, 5 ${hi}</span></span><div class="opts" role="group" aria-label="${q}">${[1, 2, 3, 4, 5].map(n => `<button data-act="ci-q" data-id="${k}" data-val="${n}" aria-pressed="${D.q[k] === n}">${n}</button>`).join('')}</div></div>`).join('')}</div>
-    ${worry ? '<p class="note">That sounds like a hard day. Consider a private conference with the behavioural health team, or talk to a crewmate you trust today.</p>' : ''}
-    <p class="small soft">A brief check written for this app, not a validated or diagnostic questionnaire. Answers stay on this device unless you share the report.</p>`;
+    const p = pss4(D.pss), l = lonely3(D.lon), worry = D.v.mood <= 3 || (l != null && l >= 6) || (p != null && p >= 12);
+    const opts = (k, i, arr, base, act) => `<div class="opts wide" role="group" aria-label="${esc(k)}">${arr.map((o, n) => `<button data-act="${act}" data-k="${i}" data-val="${n + base}" aria-pressed="${(act === 'ci-pss' ? D.pss : D.lon)[i] === n + base}">${o}</button>`).join('')}</div>`;
+    const weekly = D.psychDue ? `<div class="psych"><div class="lbl">Weekly check · two validated scales</div>
+      <p class="small soft" style="margin-bottom:12px">Perceived Stress Scale, 4 items (Cohen et al., 1983), asked about the last week; Three-Item Loneliness Scale (Hughes et al., 2004). Answer honestly: there are no right answers.</p>
+      ${PSS4.map((q, i) => `<div class="pq"><span>${q.t}</span>${opts(q.t, i, PSS_OPTS, 0, 'ci-pss')}</div>`).join('')}
+      ${LONELY3.map((q, i) => `<div class="pq"><span>${q}</span>${opts(q, i, LONELY_OPTS, 1, 'ci-lon')}</div>`).join('')}
+      <p class="small" style="margin-top:8px">${p != null ? `Perceived stress <b class="num">${p}</b> of 16` : `${D.pss.filter(x => x != null).length} of 4 stress items answered`} · ${l != null ? `Loneliness <b class="num">${l}</b> of 9` : `${D.lon.filter(x => x != null).length} of 3 loneliness items answered`}</p></div>`
+      : `<p class="small soft">Your weekly stress and loneliness questions are done for this week.</p>`;
+    return `<div><div class="lbl">Overall mood today</div><div class="moods" role="group" aria-label="Mood from 1 to 10">${Array.from({ length: 10 }, (_, k) => k + 1).map(n => `<button data-act="ci-set" data-id="mood" data-val="${n}" aria-pressed="${Math.round(D.v.mood) === n}">${n}</button>`).join('')}</div></div>
+    <div class="likert"><div class="row"><span>${CONFINE}</span><div class="opts" role="group" aria-label="Confinement">${[1, 2, 3, 4, 5].map(n => `<button data-act="ci-q" data-id="confinement" data-val="${n}" aria-pressed="${D.q.confinement === n}">${n}</button>`).join('')}</div></div></div>
+    ${weekly}
+    ${worry ? '<p class="note">That sounds like a hard stretch. Consider a private conference with the behavioural health team, or talk to a crewmate you trust today.</p>' : ''}
+    <p class="small soft">Neither scale is a diagnosis. Answers stay on this device unless you share the report.</p>`;
   }
   if (step === 'symptoms') return `<div class="symptoms" role="group" aria-label="Symptoms">${SYMPTOMS.map(s => `<button data-act="ci-sx" data-val="${esc(s)}" aria-pressed="${D.sx.includes(s)}">${s}</button>`).join('')}</div>
     <div class="quick"><button data-act="ci-sx-none" aria-pressed="${!D.sx.length}">None of these</button></div>
@@ -136,7 +145,7 @@ function stageBody(step, D, A, P) {
   const quick = `<div class="quick">${lastVal != null && !D.update ? `<button data-act="ci-same" data-id="${step}">Same as last time (${lastVal})</button>` : ''}${step !== 'ex' ? `<button data-act="ci-skip" data-id="${step}" aria-pressed="false">I can't measure this today</button>` : ''}</div>`;
   const timers = (TIMERS[step] || []).map(t => timerHTML(timerId(D, t.k), t)).join('');
   const ind = step === 'bp' ? byId('sys') : indOf(step);
-  const tut = ind.tut ? tutorial(ind) : '';
+  const tut = ind.tut ? tutorial(ind, false) : '';
   const extra = step === 'ex' ? `<div class="howto"><div><b>How to count it</b>Add up treadmill, cycle and resistance sessions. Warm-up counts; rest between sets does not.</div><div><b>Why it matters in space</b>Without gravity, weight-bearing bones lose 1% to 1.5% of their density a month. Daily exercise is the main countermeasure. Hitting 120 minutes earns 50 XP.</div></div>`
     : step === 'sleep' ? `<div class="howto"><div><b>How to count it</b>${ind.how}</div><div><b>Why it matters in space</b>${ind.space}</div></div>` : `<div class="howto"><div><b>Why it matters in space</b>${ind.space}</div></div>`;
   return tut + timers + body + voiceBar(step, D) + quick + extra;
@@ -164,12 +173,13 @@ export function view(ctx) {
     <p class="lede">${esc(P.name)}, ${D.steps.length - 1} checks stand between you and today's duty clearance, about ${D.steps.includes('bp') ? 'ten' : 'five'} minutes with the timed rests. ${first.length ? `${NAME[first[0]]} comes first today because it has been drifting.` : 'Your readings have been steady, so they come in the usual order.'}</p>
     <div class="facts"><span>Location<b>${m.name}</b></span><span>One-way signal<b>${m.oneWayS < 60 ? m.oneWayS.toFixed(1) + ' s' : (m.oneWayS / 60).toFixed(0) + ' min'}</b></span><span>Ground consult, 3 exchanges<b>${(consultDays(m) * 24).toFixed(0)} h</b></span><span>Reward<b>+100 XP</b></span></div>
     ${vitalsHTML(D)}
-    ${P.briefed ? '' : '<p class="newhere"><button class="btn onband" data-act="br-open">New here? 3-step mission briefing</button></p>'}
+    <p class="newhere"><button class="btn onband" data-act="au-session">🎧 Guided session: talk me through it</button>${P.briefed ? '' : '<button class="btn" data-act="br-open">New here? 3-step mission briefing</button>'}</p>
   </div></div></section>`;
   const nav = `<nav class="panel stepsnav" aria-label="Clearance steps"><ol>${D.steps.map((s, k) => `<li><button data-act="ci-go" data-i="${k}" class="${D.seen[s] && k !== D.i ? 'done' : ''}" ${k === D.i ? 'aria-current="step"' : ''}><span class="n">${D.seen[s] && k !== D.i ? '✓' : k + 1}</span><span>${NAME[s]}</span>${D.flagged[s] >= 1 ? `<span class="s${D.flagged[s]}" title="Drifting">${glyph(D.flagged[s], 14)}</span>` : '<span></span>'}</button></li>`).join('')}</ol>
     <p class="small soft" style="margin-top:14px;padding:0 10px">${done} of ${D.steps.length} done. Drifting readings are asked first.${D.gluDue ? '' : ' Blood sugar is weekly and not due today.'}</p></nav>`;
+  const listen = step === 'review' ? '' : `<div class="listen"><button class="btn" data-act="guide-say" data-id="${step}">🔊 Listen to guide</button>${VOICE_STEPS.includes(step) ? '<span class="small soft">or speak it with the 🎙️ microphone below</span>' : ''}</div>`;
   const flag = D.flagged[step] >= 1 ? `<p class="why-first s${D.flagged[step]}">${glyph(D.flagged[step], 16)}This has been drifting from your baseline, so it comes first.</p>` : '';
-  const stage = `<section class="panel br stage" aria-labelledby="q">${flag}<h2 class="q" id="q" tabindex="-1">${Q[step]}</h2>${stageBody(step, D, A, P)}
+  const stage = `<section class="panel br stage" aria-labelledby="q">${flag}<h2 class="q" id="q" tabindex="-1">${Q[step]}</h2>${listen}${stageBody(step, D, A, P)}
     <div class="stagebar"><button class="btn" data-act="ci-back" ${D.i === 0 ? 'disabled' : ''}>Back</button>
     ${step === 'review' ? `<button class="btn go big" data-act="ci-save">${D.update ? `Update day ${D.day} clearance` : `Log day ${D.day} and request clearance`}</button>` : `<button class="btn primary big" data-act="ci-next">Next: ${NAME[next]}</button>`}</div></section>`;
   return band + `<div class="wrap page"><div class="grid ci">${nav}${stage}</div></div>`;

@@ -1,5 +1,5 @@
 // Today's assessment: shown right after a check-in is saved.
-import { IND, consultDays, sleepDebt, missionReadiness, clearance, quests, xpOf, rankOf, streakOf } from '../../engine/index.js';
+import { IND, consultDays, sleepDebt, missionReadiness, clearance, quests, xpOf, rankOf, streakOf, streakAward, MILESTONES } from '../../engine/index.js';
 import { gauge } from '../hud.js';
 import { badgesHTML } from './profile.js';
 import { deck } from './deck.js';
@@ -18,8 +18,9 @@ export function view(ctx) {
   const saved = S.justSaved ? `<div class="saved" role="status"><span>${check}Day ${day} logged to ${esc(P.name)}'s record, +100 XP</span><span>${check}Compared with your personal baseline</span><span>${check}Forecasts updated for ${m.name}</span>${S.newBadges && S.newBadges.length ? `<span>${check}Achievement unlocked: ${S.newBadges.map(b => b.icon + ' ' + b.name).join(', ')}</span>` : ''}</div>` : '';
   const band = `<section class="band"><div class="wrap">
     <div class="frame"><div class="kicker">DAY ${String(day).padStart(3, '0')} CLEARANCE RESULT</div><div class="clear ${cl.code}">${cl.code === 'go' ? '✔' : cl.code === 'restrict' ? '▲' : '■'} ${cl.title}</div><div class="statusline"><span class="big" style="color:${FILL[l]}">${glyph(l, 64)}</span><div><h1>${headline(top, day)}</h1><p class="lede">${l ? `<b>${top.ind.name}.</b> ` : ''}${sub}</p></div></div>
+    <p class="debrief-cta"><button class="btn onband big" data-act="au-debrief">▶ Listen to flight surgeon debrief</button><span>Today's assessment, vitals, drift and action plan, read aloud with pause, play and repeat.</span></p>
     ${saved}
-    <div class="facts"><span>Mission day<b>${day}${today ? ', today' : ''}</b></span><span>Mission readiness<b>${rd.score}%</b></span><span>Sleep debt, 7 nights<b>${sd.debt.toFixed(1)} h</b></span><span>Streak<b>${streak} days</b></span><span>${rk.name}<b>${xp.total.toLocaleString()} XP</b></span></div>
+    <div class="facts"><span>Mission day<b>${day}${today ? ', today' : ''}</b></span><span>Mission readiness<b>${rd.score}%</b></span><span>Sleep debt, 7 nights<b>${sd.debt.toFixed(1)} h</b></span><span>Streak<b>🔥 ${streak} days</b><small class="ms">${(() => { const w = streakAward(streak); return w.next ? `${w.toNext} to ${w.next.icon} ${w.next.name}` : `${w.last.icon} ${w.last.name}`; })()}</small></span><span>${rk.name}<b>${xp.total.toLocaleString()} XP</b></span></div>
   </div></div></section>`;
   const changes = IND.map(i => {
     const a = A.find(x => x.ind.id === i.id), v = last && last.v[i.id], p = prev.find(e => e.v[i.id] != null);

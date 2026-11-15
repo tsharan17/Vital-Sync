@@ -14,7 +14,6 @@ export function deck(ctx) {
     ['check-in', 'Clearance', 'Update today’s tests or redo a reading.', [has ? 'Logged today' : 'Start here', has ? 0 : 2]],
     ['body', 'Body scan', 'Rotate the hologram and zoom into any region.', has ? [top >= 1 ? `${live.filter(a => a.level >= 1).length} to watch` : 'All regions nominal', top >= 2 ? 2 : top] : ['No scan yet', 1]],
     ['trends', 'Trends', 'See drift early and when a limit could be crossed.', has ? [drifting ? `${drifting} drifting` : 'All steady', drifting ? 2 : 0] : ['Needs readings', 1]],
-    ['audio', 'Audio hub', 'Spoken debrief, guided session and voice logging.', ['Debrief ready', 0]],
     ['cognitive', 'Cognitive', 'Reaction, memory and tracking mini-games.', lastCog ? [`Score ${lastCog.score} this week`, 0] : ['Due · +75 XP', 2]],
     ['protocol', 'Protocol', 'Weekly vision, strength, balance and more.', due ? [`${due} task${due > 1 ? 's' : ''} due`, 2] : ['All caught up', 0]],
     ['systems', 'Systems', 'Sleep debt, radiation and cabin air.', [cab.flare ? 'Solar flare: shelter' : cabTop ? 'Cabin air: check' : 'Cabin nominal', cab.flare ? 3 : cabTop ? 2 : 0]],

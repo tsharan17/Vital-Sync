@@ -19,14 +19,14 @@ The health risks of long missions, such as rising blood pressure, sleep debt, lo
 3. **Personal baselines.** A reading is judged against the astronaut's own normal, entered before flight or learned during the mission: within 1.5 standard deviations is nominal, beyond 2.5 is caution. So 90/60 is normal for someone who always runs low, while a jump to 115/80 is flagged as drift. Textbook alert limits always apply.
 4. **Lead-time margin.** For each reading, Vital Sync fits a trend, estimates how many days remain before it crosses a limit, and compares that with how long help from Earth takes at the current location.
 5. **Today and mission readiness.** A clearance stamp when you save ("Flight cleared for mission day X") with the readiness breakdown and XP earned; a 0–100% readiness gauge; daily and weekly quests; ranks from Flight Cadet to Mission Commander; and four badges (Immune Fortress, Neuro-Ace under 250 ms, Deep Space Veteran, Zero-G Adapted) shown on Today and Body scan.
-6. **Audio hub.** A spoken flight-surgeon debrief of today's results, a guided session (four paced breaths, then each technique), every technique guide read aloud, hands-free logging practice ("pulse sixty-eight", "SpO2 ninety-eight percent"), master volume, voice and speed settings, and a sound check.
+6. **Audio everywhere.** Every check-in step has 🔊 Listen to guide and 🎙️ voice entry ("one eighteen over seventy six", "pulse sixty-two", "mood seven") with a confirmation tone. The clearance header has a guided session (four paced breaths, then each technique); Today reads a flight surgeon debrief with the action plan; Ground link reads the report aloud. One floating player handles all of it with play, pause, previous, next, repeat and stop, and shows captions. Volume, voice, speaking rate (0.75× to 1.25×), theme and a sound check live in Crew.
 7. **Cognitive battery.** A psychomotor vigilance test (reaction time), a sequence memory test and a 15-second tracking test, combined into a 0–100 score.
 8. **Mission protocol.** Daily, weekly (cognitive battery, tumbling-E vision check, grip strength, single-leg balance) and periodic tasks (ECG, ultrasound notes, dosimeter, hydration colour chart), with due tasks highlighted.
 9. **Body scan.** A 3D human with hotspots; selecting one zooms the camera in and opens a diagnostic card with readings, guidance and NASA risk links.
 10. **Body systems and cabin.** Sleep debt, immune window, radiation passport, bone and muscle budget, plus cabin CO2, O2, radiation, temperature and humidity, with a CO2 alert above 5.0 mmHg.
 11. **Ground link.** A report for flight surgeons that states the request first, now including symptoms and wellbeing.
 
-Sound effects and the voice coach can be switched off from the top bar. A first-visit **mission briefing** (three steps) explains the clearance, the body hologram and the audio coach; reopen it from the speech-bubble button. The **theme** picker offers ☀️ Light (the NASA white and blue), 🛰️ Satellite dark, or Auto, which follows the device setting; the choice is saved on the device.
+The **left rail is a game HUD**: an avatar with an XP ring and rank level, a 7-item daily clearance quest ring (amber until complete, green when cleared), live status pips on every station (body region status, drifting trends, cognitive score, tasks due, cabin air and radiation) with hover flyouts, soft sound cues, and quick toggles for sound and theme. Check-in streaks earn awards at 3, 7, 14, 30, 60 and 100 days. A first-visit **mission briefing** (three steps) explains the clearance, the body hologram and the audio coach; reopen it from the speech-bubble button. The **theme** picker offers ☀️ Light (the NASA white and blue), 🛰️ Satellite dark, or Auto, which follows the device setting; the choice is saved on the device.
 
 Status always uses shape and colour together: circle (nominal), diamond (watch), triangle (tell the crew medical officer), square (contact flight surgeons).
 
@@ -102,9 +102,10 @@ All data stays in the browser's local storage on the device. Logs can be downloa
 - The bone and radiation modules are illustrative models, labelled as such in the app.
 - Validation so far uses simulated data only.
 - A reading that is outside the textbook caution range but normal for the person is shown as normal; personal-only flags go no higher than "tell the crew medical officer".
-- The wellbeing questions are not a validated instrument. The vision test is not a calibrated eye chart. The reaction-time test is shortened to 60 seconds (the NASA version runs 3 minutes).
+- Wellbeing uses two validated scales weekly: the Perceived Stress Scale 4-item (Cohen et al., 1983; asked about the last week instead of the last month) and the Three-Item Loneliness Scale (Hughes et al., 2004). The daily confinement item is ours and not validated. None of these is a diagnosis. The vision test is not a calibrated eye chart. The reaction-time test is shortened to 60 seconds (the NASA version runs 3 minutes).
 - Cabin telemetry is simulated. Voice logging needs Chrome or Edge and a network connection.
-- Breathing rate is counted without a pacer, because pacing would change the count.
+- Breathing rate: a 32-second 4-in/4-out pacer settles breathing first, but the 60-second count itself is unpaced, because pacing during the count would set the result.
+- The "Flight cleared for EVA" stamp appears only when every reading is nominal, and is a self-check, not a medical EVA clearance.
 
 ## Use of AI tools
 

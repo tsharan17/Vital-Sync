@@ -14,8 +14,8 @@ export function guideImg(key) {
   const g = GUIDES[key]; if (!g) return '';
   return `<a class="guideimg" href="${guideSrc(key)}" target="_blank" rel="noopener" title="Open the full-size guide"><img src="${guideSrc(key)}" alt="${g.alt}" width="720" height="460" loading="lazy" decoding="async"></a>`;
 }
-export function tutorial(ind) {
+export function tutorial(ind, button = true) {
   if (!ind.tool || !ind.tut) return '';
   return `<div class="tut">${guideImg(ind.tool)}<div><div class="lbl">Technique guide</div><ol>${ind.tut.map(t => `<li>${t}</li>`).join('')}</ol>
-    <p style="margin-top:12px"><button class="btn" data-act="guide-say" data-id="${ind.id}" style="min-height:40px;padding:8px 14px;font-size:14px">▶ Hear these steps</button></p></div></div>`;
+    ${button ? `<p style="margin-top:12px"><button class="btn" data-act="guide-say" data-id="${ind.id}" style="min-height:40px;padding:8px 14px;font-size:14px">🔊 Listen to guide</button></p>` : ''}</div></div>`;
 }

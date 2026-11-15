@@ -1,15 +1,16 @@
 // Vital Sync app shell: state, routing, HUD, sound and voice, and event handling.
 // Code generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team.
-import { IND, MODES, byId, analyzeAll, simulate, evaluate, cognitiveScore, xpOf, rankOf, achievements, missionReadiness, streakOf } from '../engine/index.js';
+import { cabinTelemetry, IND, MODES, byId, analyzeAll, simulate, evaluate, cognitiveScore, xpOf, rankOf, achievements, missionReadiness, streakOf, pss4, lonely3, stressLevel, isolationLevel, streakAward } from '../engine/index.js';
 import { load, save, makeDemo, makeProfile, todayISO } from '../store.js';
 import { esc } from './format.js';
 import { regionLevels } from './assess.js';
 import { Holo, onPick } from './holo.js';
 import { sfx, isMuted, setMuted, getVolume, setVolume } from './soundFx.js';
-import { voice, parseSpoken, parseAny, linkVolume } from './audioGuide.js';
-import { THEMES, themePref, setTheme, applyTheme } from './theme.js';
+import { voice, parseSpoken, linkVolume, player } from './audioGuide.js';
+import { themePref, setTheme, applyTheme, resolve } from './theme.js';
 import { briefHTML, stampHTML, BRIEF } from './views/overlays.js';
-import * as audio from './views/audio.js';
+import { guideLines, guideTitle, sessionLines, debriefLines, reportLines } from './narration.js';
+import { mountDock } from './dock.js';
 import { artFor } from './art.js';
 import { timerAction, mountTimers, onTimerDone, resetTimers, timerState } from './timer.js';
 import { starfield } from './starfield.js';
@@ -31,7 +32,6 @@ const NAV = [
   ['today', 'Today', I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')],
   ['body', 'Body scan', I('<circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M8 10h8M10 21l2-6 2 6"/><ellipse cx="12" cy="13" rx="9" ry="3"/>')],
   ['trends', 'Trends', I('<path d="M3 17l5-5 4 3 8-9"/><path d="M15 6h5v5"/>')],
-  ['audio', 'Audio hub', I('<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="7" rx="1.5"/><rect x="16.5" y="14" width="4.5" height="7" rx="1.5"/>')],
   ['cognitive', 'Cognitive', I('<path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a3 3 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1"/>')],
   ['protocol', 'Protocol', I('<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M4 9h16M8 13h3M8 17h6"/>')],
   ['systems', 'Systems', I('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>')],
@@ -39,7 +39,9 @@ const NAV = [
   ['profile', 'Crew', I('<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>')],
   ['about', 'About', I('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>')]
 ];
-const VIEWS = { 'check-in': checkin, today, body, trends, systems, 'ground-link': comms, about, validation, cognitive, protocol, profile, audio };
+const VIEWS = { 'check-in': checkin, today, body, trends, systems, 'ground-link': comms, about, validation, cognitive, protocol, profile };
+// Old links to the retired Audio hub land on the audio settings in Crew.
+const ALIAS = { audio: 'profile' };
 const NEEDS_DATA = ['today', 'body', 'trends', 'systems', 'ground-link'];
 const MARK = '<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="none" stroke="var(--blue)" stroke-width="1.5"/><ellipse cx="22" cy="22" rx="21" ry="8" fill="none" stroke="var(--blue)" stroke-width="1.2" transform="rotate(-24 22 22)" opacity=".7"/><path d="M8 23h7l3-6 5 12 4-9 2 3h7" fill="none" stroke="var(--s0-fill)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="13" r="2.6" fill="var(--s3-fill)"/></svg>';
 const SND = [I('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>'), I('<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/>')];
@@ -53,7 +55,7 @@ const lastDay = () => { const L = prof().log; return L.length ? L[L.length - 1].
 const modeOf = p => MODES.find(x => x.id === p.mode) || MODES[3];
 // The app always opens on the clearance: tests first, results after.
 const defaultRoute = () => 'check-in';
-const route = () => { const h = location.hash.slice(1); return VIEWS[h] ? h : defaultRoute(); };
+const route = () => { const h = location.hash.slice(1); return VIEWS[h] ? h : ALIAS[h] || defaultRoute(); };
 const persist = () => save(db);
 
 function ctx(forDay) {
@@ -61,18 +63,52 @@ function ctx(forDay) {
   return { P, db, m, S, day, lastDay: ld, A: analyzeAll(P.log, day, m, P.blackout, P.baseline) };
 }
 
+// Game HUD rail: avatar with XP ring, the 7-item daily clearance quest, live status pips and hover flyouts on every station.
+const DAILY7 = [['hr', 'Heart rate'], ['sys', 'Blood pressure'], ['spo2', 'Blood oxygen'], ['rr', 'Breathing'], ['temp', 'Temperature'], ['sleep', 'Sleep'], ['fatigue', 'Fatigue']];
+const LVN = ['Nominal', 'Watch', 'Tell CMO', 'Contact ground'];
+const SHORT_RANK = { 'Flight Cadet': 'CADET', 'Specialist': 'SPECIALIST', 'Science Officer': 'SCI OFFICER', 'Mission Commander': 'COMMANDER' };
+function questOf(P) {
+  const e = P.log.find(x => x.date === todayISO()), D = S.ci;
+  const done = DAILY7.map(([id]) => {
+    if (D) { const st = id === 'sys' ? 'bp' : id; if (D.skip && D.skip[st]) return false; if ((D.touched && D.touched[st]) || (D.seen && D.seen[st])) return true; }
+    return !!(e && e.v && e.v[id] != null);
+  });
+  return { n: done.filter(Boolean).length, done, logged: !!e };
+}
 function hud(v, P, m) {
-  const x = xpOf(P), r = rankOf(x.total), due = protocol.dueCount(P, lastDay());
-  const rail = `<aside class="rail"><a class="brand" href="#check-in" aria-label="Vital Sync home">${MARK}</a><nav aria-label="Main" style="display:contents">${NAV.map(([id, t, ic]) => `<a class="nv" href="#${id}" ${id === v ? 'aria-current="page"' : ''}>${ic}${t}${id === 'protocol' && due > 1 ? '<span class="dot" aria-label="Tasks due"></span>' : ''}</a>`).join('')}</nav></aside>`;
+  const ld = lastDay(), A = P.log.length ? ctx(ld).A : [], x = xpOf(P), r = rankOf(x.total), due = protocol.dueCount(P, ld);
+  const q = questOf(P), live = A.filter(a => !a.none), top = live.reduce((t, a) => Math.max(t, a.level), 0), drifting = live.filter(a => a.drift >= 1);
+  const L = P.log.length ? regionLevels(A, P, ld, m) : null, worst = L ? Math.max(L.head, L.chest, L.core, L.legs) : 0;
+  const cab = cabinTelemetry(ld || 1, m), cabTop = Math.max(...Object.values(cab.levels)), cog = (P.cog || []).filter(c => c.d <= ld).slice(-1)[0], cogDue = !(P.cog || []).some(c => c.d > ld - 7);
+  const st = streakOf(P.log, ld), aw = streakAward(st), C = 2 * Math.PI * 27, Cq = 2 * Math.PI * 21, qc = q.n === 7 ? 'var(--s0-fill)' : 'var(--s2-fill)';
+  const pip = { // [class, content, tip]
+    'check-in': [q.n === 7 ? 's0 ok' : 's2 pulse', q.n === 7 ? '✓' : '', `Daily clearance|${q.n} of 7 daily items logged|${q.n === 7 ? 'Cleared for today' : 'Tap to continue the check-in'}`],
+    today: [P.log.length ? 's' + top : 'off', '', `Today|${P.log.length ? LVN[top] + ' · readiness ' + missionReadiness(A, P.log, ld, P.cog).score + '%' : 'No clearance yet'}|🔥 ${st}-day streak${aw.next ? ' · ' + aw.toNext + ' to ' + aw.next.name : ''}`],
+    body: [L ? 's' + worst : 'off', '', L ? `Body scan|Head: ${LVN[L.head]} · Chest: ${LVN[L.chest]}|Core: ${LVN[L.core]} · Musculoskeletal: ${LVN[L.legs]}` : 'Body scan|No readings yet'],
+    trends: [drifting.length ? 's2' : 's0', drifting.length || '', `Trends|${drifting.length ? drifting.slice(0, 3).map(a => a.ind.name).join(', ') + ' drifting' : 'All readings steady'}`],
+    cognitive: [cogDue ? 's2 pulse' : 's0', cog ? cog.score : '', `Cognitive|${cog ? 'Last score ' + cog.score + ' of 100' : 'No battery yet'}|${cogDue ? 'Weekly battery due · +75 XP' : 'Done this week'}`],
+    protocol: [due ? 's2' : 's0', due || '', `Protocol|${due ? due + ' task' + (due > 1 ? 's' : '') + ' due' : 'All caught up'}`],
+    systems: [cab.flare ? 's3 pulse' : cabTop ? 's2 pulse' : 's0', '', `Systems|CO₂ ${cab.v.co2} mmHg · O₂ ${cab.v.o2}%|Radiation ${cab.v.rad} mSv/day${cab.flare ? ' · solar event!' : ''}`],
+    'ground-link': ['off', '', `Ground link|One-way signal ${m.oneWayS < 60 ? m.oneWayS.toFixed(1) + ' s' : Math.round(m.oneWayS / 60) + ' min'}|Report ready to read or send`],
+    profile: [r.next && r.progress > 0.9 ? 's0' : 'off', '', `Crew and settings|${r.name} · ${x.total.toLocaleString()} XP|Sound, voice and theme settings`],
+    about: ['off', '', 'About|Method, sources and limits']
+  };
+  const avatar = `<a class="avatar" href="#profile" data-tip="${esc(P.name)}|LVL ${r.index + 1} ${r.name} · ${x.total.toLocaleString()} XP|${r.next ? (r.next.xp - x.total).toLocaleString() + ' XP to ' + r.next.name : 'Top rank reached'}">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--track)" stroke-width="4"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--blue)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(C * r.progress).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)" class="xpring"/>
+      <circle cx="32" cy="31" r="15" fill="var(--tint2)" stroke="var(--ink)" stroke-width="1.6"/><rect x="22" y="25" width="20" height="11" rx="5.5" fill="var(--blue)" opacity=".85"/><path d="M25 28q4-2 8 0" stroke="#fff" stroke-width="1.4" fill="none" opacity=".8"/><path d="M20 46q12-7 24 0" stroke="var(--ink)" stroke-width="1.6" fill="none"/></svg>
+    <b>${esc(P.name.length > 11 ? P.name.slice(0, 10) + '…' : P.name)}</b><span>LVL ${r.index + 1} ${SHORT_RANK[r.name] || ''}</span></a>`;
+  const quest = `<a class="quest ${q.n === 7 ? 'q-done' : 'q-pending'}" href="#check-in" data-tip="Daily clearance quest|${DAILY7.map(([, t], k) => (q.done[k] ? '✓ ' : '○ ') + t).join(' · ')}|${q.n === 7 ? 'Complete · +100 XP earned' : 'Finish all 7 for +100 XP'}">
+    <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="21" fill="none" stroke="var(--track)" stroke-width="5"/><circle cx="26" cy="26" r="21" fill="none" stroke="${qc}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(Cq * q.n / 7).toFixed(1)} ${Cq.toFixed(1)}" transform="rotate(-90 26 26)"/>${q.n === 7 ? '<path d="M17 26l6 6 12-12" stroke="var(--s0-fill)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : `<text x="26" y="31" font-size="14" font-weight="800" text-anchor="middle" fill="var(--ink)">${q.n}/7</text>`}</svg>
+    <span>${q.n === 7 ? 'Cleared' : 'Clearance'}</span></a>`;
+  const rail = `<aside class="rail"><div class="railhud">${avatar}${quest}</div><nav aria-label="Main" style="display:contents">${NAV.map(([id, t, ic]) => { const p = pip[id] || ['off', '', t]; return `<a class="nv" href="#${id}" ${id === v ? 'aria-current="page"' : ''} data-tip="${esc(p[2])}">${ic}${t}<span class="pip ${p[0]}" aria-hidden="true">${p[1]}</span><span class="sr">: ${esc(p[2].split('|').slice(1).join('. '))}</span></a>`; }).join('')}</nav>
+    <div class="railfoot"><button class="qt snd ${isMuted() ? '' : 'on'}" data-act="snd" aria-pressed="${!isMuted()}" aria-label="Sound effects" data-tip="Sound effects|${isMuted() ? 'Muted · tap to unmute' : 'On · tap to mute'}"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>
+      <button class="qt" data-act="theme-flip" aria-label="Switch theme" data-tip="Theme|${resolve(themePref()) === 'light' ? '☀️ Light · tap for 🛰️ Satellite dark' : '🛰️ Satellite dark · tap for ☀️ Light'}">${resolve(themePref()) === 'light' ? '☀️' : '🛰️'}</button></div></aside>`;
   const bar = `<header class="hud"><div class="wrap">
-    <div class="clock"><b id="clk">MET D${String(lastDay()).padStart(3, '0')} · --:--:--</b><span>Vital Sync</span></div>
+    <div class="clock"><b id="clk">MET D${String(ld).padStart(3, '0')} · --:--:--</b><span>Vital Sync · 🔥 ${st}-day streak</span></div>
     <label for="crew" class="sr">Crew member</label><select id="crew">${db.profiles.map(p => `<option value="${p.id}" ${p.id === P.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}<option value="__add">Add crew member…</option></select>
     <label for="mode" class="sr">Location</label><select id="mode">${MODES.map(o => `<option value="${o.id}" ${o.id === m.id ? 'selected' : ''}>${o.name}</option>`).join('')}</select>
     ${m.black ? `<label class="chk" style="font-size:13px;color:var(--ink)" title="${m.black}-day communication blackout ahead"><input type="checkbox" id="black" ${P.blackout ? 'checked' : ''}>Blackout</label>` : ''}
-    <a class="rankchip" href="#profile"><b>${r.name}</b><span class="xpbar"><i style="width:${(r.progress * 100).toFixed(1)}%"></i></span><span class="soft">${x.total.toLocaleString()} XP</span></a>
-    <button class="tog icon" data-act="snd" aria-pressed="${!isMuted()}" aria-label="Sound effects" title="${isMuted() ? 'Sound effects muted' : 'Sound effects on'}">${SND[isMuted() ? 1 : 0]}</button>
-    ${voice.canSpeak ? `<button class="tog icon" data-act="vc" aria-pressed="${voice.on}" aria-label="Voice coach" title="${voice.on ? 'Voice coach on' : 'Voice coach off'}">${MIC}</button>` : ''}
-    <label for="theme" class="sr">Theme</label><select id="theme" class="theme">${THEMES.map(([k, t]) => `<option value="${k}" ${themePref() === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+    ${voice.canSpeak ? `<button class="tog" data-act="vc" aria-pressed="${voice.on}" aria-label="Voice coach" title="${voice.on ? 'Voice coach on' : 'Voice coach off'}">${MIC}Voice ${voice.on ? 'on' : 'off'}</button>` : ''}
     <button class="tog icon" data-act="br-open" aria-label="Mission briefing" title="Mission briefing">${I('<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>')}</button>
     ${P.demo ? '<a class="demo" href="#validation">Demo</a>' : ''}
   </div></header>`;
@@ -154,7 +190,10 @@ function saveCheckin() {
     const x = +D.v[ind.id];
     if (!D.skip[stepOf(ind.id)] && isFinite(x) && x >= ind.min && x <= ind.max) v[ind.id] = x;
   }
-  const entry = { d: D.day, date: todayISO(), v, ex: Math.max(0, Math.min(300, +D.v.ex || 0)), q: { ...D.q }, sx: [...D.sx] };
+  const q = { ...D.q }, p = pss4(D.pss), l = lonely3(D.lon), prevQ = [...P.log].reverse().find(e => e.q && e.q.pss4 != null);
+  if (p != null && l != null) Object.assign(q, { pss4: p, lonely3: l, pssAns: [...D.pss], lonAns: [...D.lon], stress: stressLevel(p), isolation: isolationLevel(l) });
+  else if (prevQ) Object.assign(q, { stress: prevQ.q.stress, isolation: prevQ.q.isolation, carried: true });
+  const entry = { d: D.day, date: todayISO(), v, ex: Math.max(0, Math.min(300, +D.v.ex || 0)), q, sx: [...D.sx] };
   if (D.update) P.log[P.log.length - 1] = { ...P.log[P.log.length - 1], ...entry, sim: false };
   else P.log.push(entry);
   persist();
@@ -163,25 +202,18 @@ function saveCheckin() {
   S.ci = null; S.justSaved = true; S.viewDay = null; S.sel = null; S.focus = null; resetTimers('ci-');
   const c2 = ctx(), top = c2.A.reduce((m, a) => Math.max(m, a.level), 0), xp1 = xpOf(P).total, rk = rankOf(xp1);
   S.stamp = { top, day: D.day, rd: missionReadiness(c2.A, P.log, c2.day, P.cog), xp: xp1 - xp0, rank: rk.name, rankUp: rk.name !== rank0, streak: streakOf(P.log, D.day), badges: S.newBadges };
+  { const w = streakAward(S.stamp.streak); Object.assign(S.stamp, { award: w.justHit, next: w.next, toNext: w.toNext }); }
   S.ovFocus = true; S.brief = null;
   sfx.stamp(); setTimeout(() => { if (top >= 2) sfx.klaxon(top); else sfx.fanfare(); }, 380);
-  voice.say(['Cleared for duty.', 'Cleared for duty. One reading to watch.', 'Cleared with restrictions. Tell your crew medical officer today.', 'Not cleared. Contact flight surgeons now.'][top]);
+  voice.say(['Flight cleared for E V A.', 'Flight cleared. One reading to watch; confirm E V A with your crew medical officer.', 'Cleared with restrictions. Tell your crew medical officer today.', 'Not cleared. Contact flight surgeons now.'][top]);
   if (location.hash === '#today') render(); else location.hash = 'today';
 }
 
 function closeBrief() { const P = prof(); P.briefed = true; persist(); S.brief = null; voice.hush(); }
-function play(key, lines) {
-  voice.stopQueue(); audio.H.playing = key; audio.H.line = -1; render();
-  voice.sayQueue(lines, {
-    onLine: i => { audio.mark(key, i); const l = lines[i]; audio.pacer(l && l.phase === 'breath', l && l.phase === 'breath' ? (/\bin\b|In for/i.test(l.text) ? 'Breathe in… 4' : 'Breathe out… 4') : 'Paced breathing'); },
-    onEnd: () => { if (audio.H.playing === key) { audio.H.playing = null; audio.H.line = -1; if (route() === 'audio') render(); } }
-  });
-}
-
 function act(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, D = S.ci, P = prof();
-  if (!['deck-jump', 'ci-step', 't-tap', 'snd', 'e-dir', 'ci-mic', 'au-sfx', 'br-say', 'guide-say', 'au-try', 'stamp-close'].includes(a)) sfx.blip();
+  if (!['deck-jump', 'ci-step', 't-tap', 'snd', 'e-dir', 'ci-mic', 'au-sfx', 'br-say', 'stamp-close', 'theme-flip'].includes(a)) sfx.blip();
   switch (a) {
     case 'snd': setMuted(!isMuted()); if (!isMuted()) sfx.confirm(); break;
     case 'br-open': S.brief = 0; S.ovFocus = true; break;
@@ -192,25 +224,13 @@ function act(e) {
     case 'br-go': closeBrief(); if (location.hash !== '#check-in') { location.hash = 'check-in'; return; } break;
     case 'deck-jump': document.querySelector('.deck')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); document.getElementById('deck-h')?.focus({ preventScroll: true }); return;
     case 'stamp-close': S.stamp = null; sfx.select(); break;
-    case 'guide-say': voice.sayQueue(audio.guideLines(b.dataset.id)); return;
-    case 'au-debrief': play('debrief', audio.debriefLines(ctx())); return;
-    case 'au-session': play('session', audio.sessionLines()); return;
-    case 'au-guide': play('g-' + b.dataset.id, audio.guideLines(b.dataset.id)); return;
-    case 'au-stop': voice.stopQueue(); audio.H.playing = null; break;
+    case 'guide-say': player.play(guideTitle(b.dataset.id), guideLines(b.dataset.id)); return;
+    case 'au-debrief': player.play('Flight surgeon debrief', debriefLines(ctx())); return;
+    case 'au-session': player.play('Guided session: talk me through it', sessionLines()); return;
+    case 'au-report': { const t = document.getElementById('rep'); if (t) player.play('Ground report', reportLines(t.value)); return; }
+    case 'theme-flip': setTheme(resolve(themePref()) === 'light' ? 'satellite' : 'light'); sfx.select(); break;
     case 'au-sfx': { const k = b.dataset.s; if (isMuted()) { S.msg = ''; } (sfx[k] || sfx.blip)(k === 'klaxon' ? 2 : undefined); return; }
     case 'au-vtest': voice.say('This is your audio coach. A reading sounds like this: one hundred eighteen over seventy six.', true); return;
-    case 'au-handsfree': voice.set(true); voice.say('Voice coach on. Starting your clearance.', true); location.hash = 'check-in'; return;
-    case 'au-try': {
-      if (voice.listening) { voice.stop(); break; }
-      b.setAttribute('aria-pressed', 'true'); voice.hush();
-      voice.listen(alts => {
-        let r = null; for (const t of alts) { r = parseAny(t); if (r) break; }
-        audio.H.tried = alts[0] || ''; const N = { sys: 'Blood pressure', hr: 'Heart rate', spo2: 'Blood oxygen', rr: 'Breathing rate', temp: 'Temperature', glu: 'Blood sugar', sleep: 'Sleep' };
-        audio.H.triedOk = r ? (r.sys != null ? `Blood pressure ${r.sys}/${r.dia}` : `${N[Object.keys(r)[0]]} ${Object.values(r)[0]}`) : null;
-        if (r) sfx.confirm(); else sfx.error(); render();
-      }, () => { const m = document.querySelector('[data-act="au-try"]'); if (m) m.setAttribute('aria-pressed', 'false'); });
-      return;
-    }
     case 'vc': voice.set(!voice.on); if (voice.on) voice.say('Voice coach on.', true); break;
     case 'ci-go': goStep(+b.dataset.i); break;
     case 'ci-next': goStep(D.i + 1); break;
@@ -218,6 +238,8 @@ function act(e) {
     case 'ci-step': { const id = b.dataset.id, ind = checkin.indOf(id); sfx.tick(); setCi(id, (+D.v[id] || 0) + ind.step * +b.dataset.dir); return; }
     case 'ci-set': D.v[b.dataset.id] = +b.dataset.val; sfx.select(); break;
     case 'ci-q': D.q[b.dataset.id] = +b.dataset.val; sfx.select(); break;
+    case 'ci-pss': D.pss[+b.dataset.k] = +b.dataset.val; sfx.select(); break;
+    case 'ci-lon': D.lon[+b.dataset.k] = +b.dataset.val; sfx.select(); break;
     case 'ci-sx': { const s = b.dataset.val, k = D.sx.indexOf(s); if (k >= 0) D.sx.splice(k, 1); else D.sx.push(s); break; }
     case 'ci-sx-none': D.sx = []; break;
     case 'ci-same': { const last = P.log[P.log.length - 1]; for (const id of checkin.fieldsOf(b.dataset.id)) { const val = id === 'ex' ? last.ex : last.v[id]; if (val != null) D.v[id] = val; } (D.touched = D.touched || {})[b.dataset.id] = true; break; }
@@ -228,7 +250,8 @@ function act(e) {
       const step = D.steps[D.i];
       voice.hush(); b.setAttribute('aria-pressed', 'true'); sfx.blip();
       voice.listen(alts => {
-        const r = parseSpoken(alts, step); D.heard = alts[0] || '';
+        let r = parseSpoken(alts, step); D.heard = alts[0] || '';
+        if (r && step === 'wellbeing') r = { mood: Math.round(r.wellbeing) };
         const ok = r && Object.entries(r).every(([id, x]) => { const ind = checkin.indOf(id); return x >= ind.min && x <= ind.max; });
         if (!ok) { sfx.error(); voice.say('Sorry, I did not catch a value. Please try again.', true); render(); return; }
         for (const [id, x] of Object.entries(r)) { S.ci.v[id] = +(+x).toFixed(checkin.indOf(id).dec); touch(id); }
@@ -311,8 +334,32 @@ function act(e) {
 
 export function start() {
   applyTheme();
+  if (location.hash.slice(1) in ALIAS) history.replaceState(null, '', '#' + ALIAS[location.hash.slice(1)]);
+  mountDock();
+  try { speechSynthesis.addEventListener('voiceschanged', () => { if (route() === 'profile') render(); }); } catch (e) { /* no speech */ }
   starfield();
   document.addEventListener('click', act);
+  // Rail HUD: hover flyouts with live telemetry, a soft tick on hover and a chirp on selection.
+  const fly = document.createElement('div'); fly.id = 'flyout'; fly.className = 'flyout'; fly.hidden = true; fly.setAttribute('role', 'tooltip'); document.body.appendChild(fly);
+  const narrow = matchMedia('(max-width: 760px)');
+  let lastTip = null, lastTick = 0;
+  const showTip = t => {
+    if (narrow.matches) return;
+    const [h, ...rest] = t.dataset.tip.split('|'), r = t.getBoundingClientRect();
+    fly.innerHTML = `<b>${h}</b>${rest.map(x => `<span>${x}</span>`).join('')}`;
+    fly.hidden = false; fly.style.left = (r.right + 12) + 'px'; fly.style.top = Math.max(8, Math.min(innerHeight - fly.offsetHeight - 8, r.top + r.height / 2 - fly.offsetHeight / 2)) + 'px';
+  };
+  const hideTip = () => { fly.hidden = true; lastTip = null; };
+  document.addEventListener('mouseover', e => {
+    const t = e.target.closest('.rail [data-tip]');
+    if (!t) { if (lastTip) hideTip(); return; }
+    if (t === lastTip) return;
+    lastTip = t; showTip(t);
+    const now = performance.now(); if (now - lastTick > 70) { sfx.tick(); lastTick = now; }
+  });
+  document.addEventListener('focusin', e => { const t = e.target.closest('.rail [data-tip]'); if (t && t.matches(':focus-visible')) { lastTip = t; showTip(t); } else if (lastTip) hideTip(); });
+  document.addEventListener('scroll', hideTip, true);
+  document.addEventListener('click', e => { if (e.target.closest('.rail a')) { sfx.select(); hideTip(); } }, true);
   document.addEventListener('input', e => {
     const t = e.target;
     if (t.dataset.ci && S.ci) setCi(t.dataset.ci, t.value);
@@ -339,7 +386,7 @@ export function start() {
     if (e.key === 'Escape' && (S.brief != null || S.stamp)) { if (S.brief != null) closeBrief(); else S.stamp = null; render(); return; }
     if (e.key === 'Enter' && e.target.matches('.bignum')) { e.preventDefault(); document.querySelector('[data-act="ci-next"],[data-act="ci-save"]')?.click(); }
   });
-  window.addEventListener('hashchange', () => { if (route() !== 'body') S.focus = null; if (audio.H.playing) { voice.stopQueue(); audio.H.playing = null; } render(); });
+  window.addEventListener('hashchange', () => { if (location.hash.slice(1) in ALIAS) { history.replaceState(null, '', '#' + ALIAS[location.hash.slice(1)]); } if (route() !== 'body') S.focus = null; render(); });
   setInterval(tickClock, 1000);
   render();
 }

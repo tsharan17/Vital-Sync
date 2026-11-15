@@ -73,3 +73,13 @@ export function quests(P, day, todayDone) {
     { id: 'weekly', name: 'Weekly protocol tasks', xp: 0, done: ['acuity', 'strength', 'balance'].every(t => extra.some(x => x.type === t && x.d > day - 7)), weekly: true }
   ];
 }
+
+// Check-in streak milestones and their awards.
+export const MILESTONES = [
+  { days: 3, name: 'Ignition', icon: '🔥' }, { days: 7, name: 'Stable orbit', icon: '🛰️' }, { days: 14, name: 'Transfer burn', icon: '☄️' },
+  { days: 30, name: 'Deep space', icon: '🌌' }, { days: 60, name: 'Long haul', icon: '🪐' }, { days: 100, name: 'Centurion', icon: '🏅' }
+];
+export function streakAward(streak) {
+  const reached = MILESTONES.filter(m => streak >= m.days), next = MILESTONES.find(m => streak < m.days) || null;
+  return { streak, reached, last: reached[reached.length - 1] || null, next, toNext: next ? next.days - streak : 0, justHit: MILESTONES.find(m => m.days === streak) || null };
+}

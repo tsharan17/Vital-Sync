@@ -15,10 +15,10 @@ export const ART = {
     <path d="M160 34l46 16v34c0 32-20 52-46 64-26-12-46-32-46-64V50z" fill="${F}" stroke="${B}" stroke-width="3"/>
     <path d="M128 92h12l6-12 10 26 8-18 5 4h15" fill="none" stroke="${G}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
     ${chip(232, 16, '+100 XP', A)}`),
-  today: svg('A planet sunrise behind a readiness gauge, a tilted cleared stamp and a checked quest list', `${sparks}
+  today: svg('A planet sunrise behind a readiness gauge, a day log stamp and a checked quest list', `${sparks}
     <path d="M0 200a200 70 0 0 1 320 0z" fill="${F}" stroke="${B}" stroke-width="2"/><circle cx="250" cy="150" r="22" fill="none" stroke="${A}" stroke-width="3"/>${[0, 45, 90, 135, 180].map(a => `<path d="M${250 - 32 * Math.cos(a * Math.PI / 180)} ${150 - 32 * Math.sin(a * Math.PI / 180)}l${-8 * Math.cos(a * Math.PI / 180)} ${-8 * Math.sin(a * Math.PI / 180)}" stroke="${A}" stroke-width="3" stroke-linecap="round"/>`).join('')}
-    ${ring(78, 82, 44, 0.74)}<text x="78" y="90" font-size="24" font-weight="800" fill="${K}" text-anchor="middle">GO</text><text x="78" y="104" font-size="9" fill="${S}" text-anchor="middle" letter-spacing="1.5">READY</text>
-    <g transform="rotate(-8 214 52)"><rect x="150" y="30" width="130" height="44" rx="6" fill="none" stroke="${G}" stroke-width="3"/><rect x="155" y="35" width="120" height="34" rx="4" fill="none" stroke="${G}" stroke-width="1.2"/><text x="215" y="58" font-size="16" font-weight="900" fill="${G}" text-anchor="middle" letter-spacing="2">CLEARED</text></g>
+    ${ring(78, 82, 44, 0.74)}${star(78, 82, 16, A)}<text x="78" y="112" font-size="9" fill="${S}" text-anchor="middle" letter-spacing="1.5">READINESS</text>
+    <g transform="rotate(-8 214 52)"><rect x="150" y="30" width="130" height="44" rx="6" fill="none" stroke="${G}" stroke-width="3"/><rect x="155" y="35" width="120" height="34" rx="4" fill="none" stroke="${G}" stroke-width="1.2"/><text x="215" y="58" font-size="16" font-weight="900" fill="${G}" text-anchor="middle" letter-spacing="2">DAY LOG</text></g>
     ${[0, 1, 2].map(k => `<rect x="150" y="${92 + k * 20}" width="12" height="12" rx="3" fill="${k < 2 ? G : 'none'}" stroke="${k < 2 ? G : S}" stroke-width="1.6"/><rect x="170" y="${96 + k * 20}" width="${70 - k * 14}" height="5" rx="2.5" fill="${T}"/>`).join('')}`),
   body: svg('A holographic human figure with a horizontal scan beam and glowing hotspots', `${sparks}
     <ellipse cx="160" cy="184" rx="70" ry="10" fill="none" stroke="${B}" stroke-width="2"/>

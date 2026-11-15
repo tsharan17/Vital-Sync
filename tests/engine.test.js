@@ -189,3 +189,24 @@ test('hands-free phrases parse to the right reading', () => {
   assert.deepEqual(parseSpoken(['pulse sixty eight'], 'hr'), { hr: 68 });
   assert.equal(parseAny('hello there'), null);
 });
+
+// ---- Validated wellbeing scales and streak milestones ----
+import { pss4, lonely3, stressLevel, isolationLevel, psychDue, streakAward, MILESTONES } from '../src/engine/index.js';
+test('PSS-4 reverse-scores items 2 and 3; loneliness scale sums 3 to 9', () => {
+  assert.equal(pss4([0, 4, 4, 0]), 0);
+  assert.equal(pss4([4, 0, 0, 4]), 16);
+  assert.equal(pss4([2, 2, 2, 2]), 8);
+  assert.equal(pss4([1, 2, 3]), null);
+  assert.equal(lonely3([1, 1, 1]), 3);
+  assert.equal(lonely3([3, 3, 3]), 9);
+  assert.equal(lonely3([0, 1, 1]), null);
+  assert.equal(stressLevel(0), 1); assert.equal(stressLevel(16), 5); assert.equal(isolationLevel(9), 5); assert.equal(isolationLevel(3), 1);
+  assert.equal(psychDue([{ d: 10, q: { pss4: 5 } }], 14), false);
+  assert.equal(psychDue([{ d: 10, q: { pss4: 5 } }], 17), true);
+  assert.equal(psychDue([{ d: 10, q: { stress: 2 } }], 11), true);
+});
+test('streak milestones award at 3, 7, 14, 30, 60 and 100 days', () => {
+  assert.deepEqual(MILESTONES.map(m => m.days), [3, 7, 14, 30, 60, 100]);
+  const a = streakAward(7); assert.equal(a.last.name, 'Stable orbit'); assert.equal(a.next.days, 14); assert.equal(a.toNext, 7); assert.equal(a.justHit.days, 7);
+  assert.equal(streakAward(2).last, null); assert.equal(streakAward(8).justHit, null); assert.equal(streakAward(120).next, null);
+});

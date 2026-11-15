@@ -24,7 +24,7 @@ const ART = {
 export const BRIEF = [
   { k: 'clearance', title: 'Daily flight clearance', body: 'Each morning, a guided check walks you through six vitals, then sleep, fatigue, wellbeing and symptoms. Each vital turns green as you log it. It takes about ten minutes including the timed rests, and earns your duty clearance and 100 XP.', say: 'Step one. Your daily flight clearance. A guided check walks you through six vitals, then sleep, fatigue, wellbeing and symptoms. Each vital turns green as you log it.' },
   { k: 'body', title: '3D body hologram', body: 'Body scan shows each region of the body in its status colour. Drag to rotate it. Tap a glowing hotspot to zoom in and open its diagnostic card, with your readings, what to do, and NASA risk links.', say: 'Step two. The body hologram. Drag to rotate it, and tap a glowing hotspot to zoom in and open its diagnostic card.' },
-  { k: 'audio', title: 'Audio coach and timers', body: 'Every measurement has a timer with sound cues and an illustrated technique guide. Turn on Voice in the top bar and a calm voice reads each step. Tap the microphone and say a reading, such as “one twenty over eighty”. The Audio hub has your spoken debrief.', say: 'Step three. Your audio coach. Every measurement has a timer and a technique guide. Turn on voice, and tap the microphone to say a reading, such as one twenty over eighty.' }
+  { k: 'audio', title: 'Audio coach and timers', body: 'Every measurement has a timer with sound cues and an illustrated technique guide. Turn on Voice in the top bar and a calm voice reads each step. Tap the microphone and say a reading, such as “one twenty over eighty”. Every screen can read itself aloud, with pause, play and repeat; sound settings live in Crew.', say: 'Step three. Your audio coach. Every measurement has a timer and a technique guide. Turn on voice, and tap the microphone to say a reading, such as one twenty over eighty.' }
 ];
 
 export function briefHTML(i, P) {
@@ -43,8 +43,8 @@ export function briefHTML(i, P) {
 }
 
 const STAMP = [
-  { cls: 'go', big: 'Flight cleared', sub: 'for mission day' },
-  { cls: 'go', big: 'Flight cleared', sub: 'watch item noted · day' },
+  { cls: 'go', big: 'Flight cleared for EVA', sub: 'self-check go · mission day' },
+  { cls: 'go', big: 'Flight cleared', sub: 'EVA: confirm with CMO · day' },
   { cls: 'restrict', big: 'Cleared with restrictions', sub: 'tell your CMO · day' },
   { cls: 'nogo', big: 'Not cleared', sub: 'medical review · day' }
 ];
@@ -54,7 +54,7 @@ export function stampHTML(st) {
     <div class="stamp ${s.cls}"><b>${s.big}</b><span>${s.sub} ${String(st.day).padStart(3, '0')}</span></div>
     <h2 id="stamp-h" tabindex="-1" class="sr">${s.big} ${s.sub} ${st.day}</h2>
     <div class="stampbody">${gauge(rd)}
-      <div class="earned"><div class="lbl">Rewards</div><p class="xpgain">+${st.xp} XP</p><p class="soft small">${st.rank}${st.rankUp ? ' · <b class="s0">rank up!</b>' : ''} · ${st.streak}-day streak</p>
+      <div class="earned"><div class="lbl">Rewards</div><p class="xpgain">+${st.xp} XP</p><p class="soft small">${st.rank}${st.rankUp ? ' · <b class="s0">rank up!</b>' : ''} · 🔥 ${st.streak}-day streak</p>${st.award ? `<p class="award">${st.award.icon} Streak award: <b>${st.award.name}</b> (${st.award.days} days)</p>` : st.next ? `<p class="soft small">${st.toNext} more day${st.toNext > 1 ? 's' : ''} to ${st.next.icon} ${st.next.name}</p>` : ''}
       ${st.badges.length ? `<p class="newbadges">${st.badges.map(b => `<span>${b.icon} ${b.name}</span>`).join('')}</p>` : ''}</div></div>
     <p class="mbar"><button class="btn primary big" data-act="stamp-close">See today's assessment</button></p>
   </div></div>`;
