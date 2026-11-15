@@ -9,12 +9,12 @@ export const onTimerDone = fn => { onDone = fn; };
 const R = 74, C = 2 * Math.PI * R;
 const mmss = s => { s = Math.max(0, Math.ceil(s)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const ART = {
-  heart: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 56S6 40 6 22a12 12 0 0 1 26-6 12 12 0 0 1 26 6c0 18-26 34-26 34z" fill="rgba(255,42,95,.55)" stroke="#ff2a5f" stroke-width="2"/><path d="M14 30h10l4-8 6 16 4-8h12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  lungs: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8v20M32 28c-4 2-6 6-7 10M32 28c4 2 6 6 7 10" stroke="#00e5ff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M26 18c-8 2-16 14-16 28 0 6 4 9 9 8 6-1 8-6 8-12V22c0-3-1-4-1-4zM38 18c8 2 16 14 16 28 0 6-4 9-9 8-6-1-8-6-8-12V22c0-3 1-4 1-4z" fill="rgba(0,229,255,.35)" stroke="#00e5ff" stroke-width="2"/></svg>',
-  drop: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6C24 20 16 30 16 40a16 16 0 0 0 32 0c0-10-8-20-16-34z" fill="rgba(255,42,95,.5)" stroke="#ff2a5f" stroke-width="2"/></svg>',
-  thermo: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="27" y="6" width="10" height="38" rx="5" fill="none" stroke="#ffb703" stroke-width="2.5"/><circle cx="32" cy="48" r="9" fill="rgba(255,183,3,.5)" stroke="#ffb703" stroke-width="2.5"/><path d="M32 18v30" stroke="#ffb703" stroke-width="4"/></svg>',
-  pulseox: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="18" width="48" height="28" rx="10" fill="none" stroke="#00ff9d" stroke-width="2.5"/><path d="M14 32h8l3-6 5 12 4-8 3 2h13" fill="none" stroke="#00ff9d" stroke-width="2.5" stroke-linejoin="round"/></svg>',
-  stopwatch: '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="36" r="20" fill="none" stroke="#00e5ff" stroke-width="2.5"/><path d="M32 36V24M26 8h12M32 8v8" stroke="#00e5ff" stroke-width="2.5" stroke-linecap="round"/></svg>'
+  heart: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 56S6 40 6 22a12 12 0 0 1 26-6 12 12 0 0 1 26 6c0 18-26 34-26 34z" fill="var(--s3-bg)" stroke="var(--s3-fill)" stroke-width="2"/><path d="M14 30h10l4-8 6 16 4-8h12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  lungs: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 8v20M32 28c-4 2-6 6-7 10M32 28c4 2 6 6 7 10" stroke="var(--blue)" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M26 18c-8 2-16 14-16 28 0 6 4 9 9 8 6-1 8-6 8-12V22c0-3-1-4-1-4zM38 18c8 2 16 14 16 28 0 6-4 9-9 8-6-1-8-6-8-12V22c0-3 1-4 1-4z" fill="var(--tick)" stroke="var(--blue)" stroke-width="2"/></svg>',
+  drop: '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6C24 20 16 30 16 40a16 16 0 0 0 32 0c0-10-8-20-16-34z" fill="var(--s3-bg)" stroke="var(--s3-fill)" stroke-width="2"/></svg>',
+  thermo: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="27" y="6" width="10" height="38" rx="5" fill="none" stroke="var(--s2-fill)" stroke-width="2.5"/><circle cx="32" cy="48" r="9" fill="var(--s2-bg)" stroke="var(--s2-fill)" stroke-width="2.5"/><path d="M32 18v30" stroke="var(--s2-fill)" stroke-width="4"/></svg>',
+  pulseox: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="18" width="48" height="28" rx="10" fill="none" stroke="var(--s0-fill)" stroke-width="2.5"/><path d="M14 32h8l3-6 5 12 4-8 3 2h13" fill="none" stroke="var(--s0-fill)" stroke-width="2.5" stroke-linejoin="round"/></svg>',
+  stopwatch: '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="36" r="20" fill="none" stroke="var(--blue)" stroke-width="2.5"/><path d="M32 36V24M26 8h12M32 8v8" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"/></svg>'
 };
 
 function st(id, cfg) {
@@ -27,12 +27,12 @@ const remain = s => Math.max(0, s.cfg.seconds - s.elapsed - (s.running ? (perfor
 
 export function timerHTML(id, cfg) {
   const s = st(id, cfg), r = remain(s), frac = 1 - r / cfg.seconds;
-  const ticks = Array.from({ length: 60 }, (_, k) => { const a = k / 60 * 2 * Math.PI, r1 = 82, r2 = k % 5 ? 79 : 76; return `<line x1="${86 + r1 * Math.sin(a)}" y1="${86 - r1 * Math.cos(a)}" x2="${86 + r2 * Math.sin(a)}" y2="${86 - r2 * Math.cos(a)}" stroke="rgba(0,229,255,.4)" stroke-width="${k % 5 ? 1 : 2}"/>`; }).join('');
+  const ticks = Array.from({ length: 60 }, (_, k) => { const a = k / 60 * 2 * Math.PI, r1 = 82, r2 = k % 5 ? 79 : 76; return `<line x1="${86 + r1 * Math.sin(a)}" y1="${86 - r1 * Math.cos(a)}" x2="${86 + r2 * Math.sin(a)}" y2="${86 - r2 * Math.cos(a)}" stroke="var(--tick)" stroke-width="${k % 5 ? 1 : 2}"/>`; }).join('');
   const label = s.done ? 'Complete' : s.running ? (cfg.runLabel || 'Running') : s.elapsed ? 'Paused' : 'Ready';
   const tapBtn = cfg.tap ? `<button class="btn go tap" data-act="t-tap" data-t="${id}" ${s.running ? '' : 'disabled'}>Tap each ${cfg.tap === 'beats' ? 'beat' : 'breath'}</button><span class="count" id="tc-${id}">${s.taps} ${cfg.tap}</span>` : '';
   return `<div class="tmr ${s.running ? 'running' : ''} ${s.done ? 'done' : ''}" id="tm-${id}" style="--beat:${(60 / (cfg.bpm || 65)).toFixed(2)}s">
     <div class="dial">
-      <svg viewBox="0 0 172 172" aria-hidden="true">${ticks}<circle cx="86" cy="86" r="${R}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/><circle id="tr-${id}" cx="86" cy="86" r="${R}" fill="none" stroke="${s.done ? '#00ff9d' : '#00e5ff'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}" transform="rotate(-90 86 86)" style="filter:drop-shadow(0 0 6px currentColor)"/></svg>
+      <svg viewBox="0 0 172 172" aria-hidden="true">${ticks}<circle cx="86" cy="86" r="${R}" fill="none" stroke="var(--track)" stroke-width="8"/><circle id="tr-${id}" cx="86" cy="86" r="${R}" fill="none" stroke="${s.done ? 'var(--s0-fill)' : 'var(--blue)'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - frac)).toFixed(1)}" transform="rotate(-90 86 86)" style="filter:drop-shadow(0 0 6px currentColor)"/></svg>
       <div class="art ${cfg.anim || ''}">${ART[cfg.art || 'stopwatch']}</div>
       <div class="core"><div class="digits" id="td-${id}" role="timer" aria-live="off">${mmss(r)}</div><div class="sub" id="ts-${id}">${label}</div></div>
     </div>

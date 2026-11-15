@@ -11,7 +11,7 @@ export const TASKS = [
   { id: 'strength', cad: 'Weekly', every: 7, name: 'Muscle strength log', what: 'Grip strength for each hand with the onboard dynamometer.' },
   { id: 'balance', cad: 'Weekly', every: 7, name: 'Balance assessment', what: 'Single-leg stance, eyes open, up to 30 seconds. Do it on the treadmill harness or a foot restraint.' },
   { id: 'ecg', cad: 'Periodic', every: 30, name: 'ECG telemetry log', what: 'Record the rhythm reading from the ECG device.' },
-  { id: 'hydration', cad: 'As indicated', every: 3, name: 'Hydration check', what: 'Urine colour against the chart; dark colours mean drink more.' },
+  { id: 'hydration', cad: 'Periodic', every: 3, name: 'Urine hydration check', what: 'Urine colour against the chart, every few days or when thirsty or after heavy exercise; dark colours mean drink more.' },
   { id: 'ultrasound', cad: 'Periodic', every: 30, name: 'Ultrasound notes', what: 'Notes from a guided ultrasound session, such as the neck veins or eyes.' },
   { id: 'dosimeter', cad: 'Weekly', every: 7, name: 'Radiation dosimeter review', what: 'Log your personal dosimeter reading and compare it with the mission estimate.' }
 ];
@@ -34,7 +34,7 @@ function form(t, P, day, m) {
   const last = l ? `<p class="small soft">Last logged day ${l.d}${l.summary ? `: ${esc(l.summary)}` : ''}.</p>` : '';
   if (t.id === 'acuity') {
     if (!E.on) return `${last}<p><button class="btn primary" data-act="e-start">Start vision test</button></p><p class="small soft">Hold the screen at the same distance each week (about 40 cm). This tracks change over time; it is not a calibrated eye chart.</p>`;
-    return `<div class="tumble" aria-live="polite"><svg width="${SIZES[E.line]}" height="${SIZES[E.line]}" viewBox="0 0 5 5" style="transform:rotate(${DIRS[E.dir]}deg)" role="img" aria-label="Letter E, line ${E.line + 1}"><path d="M0 0h5v1H1v1h4v1H1v1h4v1H0z" fill="#e2f7ff"/></svg></div>
+    return `<div class="tumble" aria-live="polite"><svg width="${SIZES[E.line]}" height="${SIZES[E.line]}" viewBox="0 0 5 5" style="transform:rotate(${DIRS[E.dir]}deg)" role="img" aria-label="Letter E, line ${E.line + 1}"><path d="M0 0h5v1H1v1h4v1H1v1h4v1H0z" fill="var(--ink)"/></svg></div>
       <p class="small soft" style="text-align:center">Line ${E.line + 1} of ${SIZES.length}, letter ${E.trial + 1} of 3. Which way do the bars of the E point?</p>
       <div class="dirs">${[['left', '←'], ['up', '↑'], ['down', '↓'], ['right', '→']].map(([d, a]) => `<button data-act="e-dir" data-val="${d}" aria-label="${d}">${a}</button>`).join('')}</div>`;
   }
@@ -54,7 +54,7 @@ function form(t, P, day, m) {
 export function view(ctx) {
   const { P, day, m, S } = ctx;
   const band = `<section class="band"><div class="wrap"><div class="frame"><div class="kicker">SPACEFLIGHT MONITORING PROTOCOL</div><h1>Mission protocol</h1><p class="lede">Your daily, weekly and periodic health tasks. Due tasks glow amber; finishing the weekly set completes your weekly quest.</p></div></div></section>`;
-  const groups = ['Daily', 'Weekly', 'Periodic', 'As indicated'];
+  const groups = ['Daily', 'Weekly', 'Periodic'];
   return band + `<div class="wrap page grid">${S.msg ? `<p class="note info">${esc(S.msg)}</p>` : ''}${groups.map(g => {
     const ts = TASKS.filter(t => t.cad === g); if (!ts.length) return '';
     return `<section><h2 style="margin-bottom:12px">${g}</h2><div class="grid two">${ts.map(t => { const d = due(P, t, day); return `<article class="panel ${d ? 'br' : ''}${t.id === 'balance' ? ' wide' : ''}" id="task-${t.id}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px"><h3>${t.name}</h3><span class="chip ${d ? 's2' : 's0'}">${glyph(d ? 2 : 0, 12)}${d ? 'Due' : 'Done'}</span></div><p class="soft" style="margin-bottom:12px">${t.what}</p>${t.href ? `<p><a class="btn ${d ? 'primary' : ''}" href="${t.href}">${d ? 'Start' : 'Open'}</a></p>` : form(t, P, day, m)}</article>`; }).join('')}</div></section>`;

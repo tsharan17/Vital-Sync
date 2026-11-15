@@ -143,3 +143,49 @@ test('XP, ranks and achievements', () => {
   const r = missionReadiness(analyzeAll(log, 35, mars, false), log, 35, P.cog);
   assert.ok(r.score > 80 && r.score <= 100);
 });
+
+// ---- Audio hub, debrief and badge thresholds ----
+import { debrief, greeting, BADGES, PVT_ACE_MS } from '../src/engine/index.js';
+import { wordsToNumbers, parseAny, parseSpoken } from '../src/ui/audioGuide.js';
+
+test('Neuro-Ace unlocks below 250 ms median reaction time, and the streak badge is Deep Space Veteran', () => {
+  assert.equal(PVT_ACE_MS, 250);
+  const P = d => ({ log: [{ d: 1, v: {} }], cog: [{ d: 1, pvt: { median: d } }] });
+  assert.equal(achievements(P(249), 1).find(b => b.id === 'neuro').unlocked, true);
+  assert.equal(achievements(P(251), 1).find(b => b.id === 'neuro').unlocked, false);
+  assert.ok(BADGES.some(b => b.name === 'Deep Space Veteran'));
+});
+
+test('spoken debrief reads the readings, the drift and the clearance', () => {
+  const a = (id, name, val, level = 0, drift = 0, b = 0) => ({ ind: { id, name }, val, level, drift, fit: { b } });
+  const A = [a('hr', 'Resting heart rate', 62), a('sys', 'Systolic pressure', 118), a('dia', 'Diastolic pressure', 76), a('spo2', 'Blood oxygen', 98), a('temp', 'Temperature', 36.7)];
+  const L = debrief({ rankName: 'Mission Commander', hour: 8, A, readiness: { score: 86 }, day: 90 });
+  const t = L.join(' ');
+  assert.match(L[0], /^Good morning, Commander\./);
+  assert.match(t, /All systems are nominal today/);
+  assert.match(t, /resting heart rate is 62 beats per minute/);
+  assert.match(t, /blood pressure is 118 over 76/);
+  assert.match(t, /temperature is 36\.7 degrees/);
+  assert.match(t, /No trend drift detected/);
+  assert.match(t, /Mission readiness is 86 percent/);
+  assert.match(L[L.length - 1], /cleared for duty/);
+  const D = debrief({ rankName: 'Flight Cadet', hour: 20, A: [a('sys', 'Systolic pressure', 132, 2, 2, 0.4), a('dia', 'Diastolic pressure', 84)] }).join(' ');
+  assert.match(D, /Good evening, Cadet/);
+  assert.match(D, /Systolic pressure is drifting upward/);
+  assert.match(D, /cleared with restrictions/);
+  assert.equal(greeting(13), 'Good afternoon');
+  assert.match(debrief({ A: [] }).join(' '), /no readings yet/);
+});
+
+test('hands-free phrases parse to the right reading', () => {
+  assert.deepEqual(wordsToNumbers('one twenty over eighty'), [120, 80]);
+  assert.deepEqual(parseAny('One twenty over eighty'), { sys: 120, dia: 80 });
+  assert.deepEqual(parseAny('Pulse sixty-eight'), { hr: 68 });
+  assert.deepEqual(parseAny('SpO2 ninety-eight percent'), { spo2: 98 });
+  assert.deepEqual(parseAny('spo2 98%'), { spo2: 98 });
+  assert.deepEqual(parseAny('thirty six point eight'), { temp: 36.8 });
+  assert.deepEqual(parseAny('fourteen breaths'), { rr: 14 });
+  assert.deepEqual(parseSpoken(['SpO2 ninety-eight percent'], 'spo2'), { spo2: 98 });
+  assert.deepEqual(parseSpoken(['pulse sixty eight'], 'hr'), { hr: 68 });
+  assert.equal(parseAny('hello there'), null);
+});

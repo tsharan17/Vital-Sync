@@ -20,7 +20,7 @@ export function glyph(l, z = 16) {
   return `<svg class="glyph" width="${z}" height="${z}" viewBox="0 0 16 16" aria-hidden="true">${p}</svg>`;
 }
 export const chip = l => `<span class="chip s${l}">${glyph(l, 12)}${LVS[l]}</span>`;
-export const check = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#1aa266"/><path d="M5.5 10.4 8.6 13.3 14.6 7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const check = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="var(--s0-fill)"/><path d="M5.5 10.4 8.6 13.3 14.6 7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 export function forecastText(a) {
   if (a.none) return 'No readings yet.';

@@ -15,17 +15,18 @@ The health risks of long missions, such as rising blood pressure, sleep debt, lo
 ## What Vital Sync does
 
 1. **Pre-flight health clearance (daily check-in).** Heart rate, blood pressure, blood oxygen (SpO2), breathing rate, temperature, blood sugar when due, sleep, fatigue (Samn-Perelli scale), a short wellbeing check (stress, isolation, confinement) and symptoms. Readings that are drifting come first. Every test has an animated timer with audio cues: a 5-minute seated rest before blood pressure, a 60-second pulse count with tap counting, 20 s for the oximeter, a 60-second breathing count, a 30-second thermometer dwell and a 15-second glucose strip.
-2. **Guided technique.** Step-by-step instructions with diagrams for the cuff (lower edge 2–3 cm above the elbow crease), pulse, oximeter, thermometer and lancet. An optional voice coach reads the steps, and hands-free voice logging understands phrases like "one eighteen over seventy six" and asks for confirmation.
+2. **Guided technique.** Annotated clinical line diagrams (in `public/assets/guides/`, drawn by `scripts/make-guides.py`) with step-by-step instructions for the blood pressure cuff (posture, heart level, lower edge 2–3 cm above the elbow crease, artery marker over the brachial artery), radial pulse, pulse oximeter, forehead and ear thermometer, glucose lancet and breathing count. An optional voice coach reads the steps, and hands-free voice logging understands phrases like "one eighteen over seventy six" and asks for confirmation.
 3. **Personal baselines.** A reading is judged against the astronaut's own normal, entered before flight or learned during the mission: within 1.5 standard deviations is nominal, beyond 2.5 is caution. So 90/60 is normal for someone who always runs low, while a jump to 115/80 is flagged as drift. Textbook alert limits always apply.
 4. **Lead-time margin.** For each reading, Vital Sync fits a trend, estimates how many days remain before it crosses a limit, and compares that with how long help from Earth takes at the current location.
-5. **Today and mission readiness.** Clearance status, a 0–100% readiness gauge (cardiovascular, sleep reserve, cognitive), daily and weekly quests, experience points, ranks from Flight Cadet to Mission Commander, and four earned badges.
-6. **Cognitive battery.** A psychomotor vigilance test (reaction time), a sequence memory test and a 15-second tracking test, combined into a 0–100 score.
-7. **Mission protocol.** Daily, weekly (cognitive battery, tumbling-E vision check, grip strength, single-leg balance) and periodic tasks (ECG, ultrasound notes, dosimeter, hydration colour chart), with due tasks highlighted.
-8. **Body scan.** A 3D human with hotspots; selecting one zooms the camera in and opens a diagnostic card with readings, guidance and NASA risk links.
-9. **Body systems and cabin.** Sleep debt, immune window, radiation passport, bone and muscle budget, plus cabin CO2, O2, radiation, temperature and humidity, with a CO2 alert above 5.0 mmHg.
-10. **Ground link.** A report for flight surgeons that states the request first, now including symptoms and wellbeing.
+5. **Today and mission readiness.** A clearance stamp when you save ("Flight cleared for mission day X") with the readiness breakdown and XP earned; a 0–100% readiness gauge; daily and weekly quests; ranks from Flight Cadet to Mission Commander; and four badges (Immune Fortress, Neuro-Ace under 250 ms, Deep Space Veteran, Zero-G Adapted) shown on Today and Body scan.
+6. **Audio hub.** A spoken flight-surgeon debrief of today's results, a guided session (four paced breaths, then each technique), every technique guide read aloud, hands-free logging practice ("pulse sixty-eight", "SpO2 ninety-eight percent"), master volume, voice and speed settings, and a sound check.
+7. **Cognitive battery.** A psychomotor vigilance test (reaction time), a sequence memory test and a 15-second tracking test, combined into a 0–100 score.
+8. **Mission protocol.** Daily, weekly (cognitive battery, tumbling-E vision check, grip strength, single-leg balance) and periodic tasks (ECG, ultrasound notes, dosimeter, hydration colour chart), with due tasks highlighted.
+9. **Body scan.** A 3D human with hotspots; selecting one zooms the camera in and opens a diagnostic card with readings, guidance and NASA risk links.
+10. **Body systems and cabin.** Sleep debt, immune window, radiation passport, bone and muscle budget, plus cabin CO2, O2, radiation, temperature and humidity, with a CO2 alert above 5.0 mmHg.
+11. **Ground link.** A report for flight surgeons that states the request first, now including symptoms and wellbeing.
 
-Sound effects and the voice coach can be switched off from the top bar.
+Sound effects and the voice coach can be switched off from the top bar. A first-visit **mission briefing** (three steps) explains the clearance, the body hologram and the audio coach; reopen it from the speech-bubble button. The **theme** picker offers ☀️ Light (the NASA white and blue), 🛰️ Satellite dark, or Auto, which follows the device setting; the choice is saved on the device.
 
 Status always uses shape and colour together: circle (nominal), diamond (watch), triangle (tell the crew medical officer), square (contact flight surgeons).
 

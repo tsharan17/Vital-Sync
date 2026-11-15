@@ -3,7 +3,11 @@
 // Code generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team.
 const KEY = 'vital-sync-voice';
 let on = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
-let rec = null;
+let rec = null, queue = null;
+const SKEY = 'vital-sync-voice-set';
+const vset = (() => { try { return Object.assign({ rate: 0.92, name: '' }, JSON.parse(localStorage.getItem(SKEY) || '{}')); } catch (e) { return { rate: 0.92, name: '' }; } })();
+let volume = () => 0.8;
+export function linkVolume(fn) { volume = fn; }
 const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
 
 export const voice = {
@@ -11,17 +15,44 @@ export const voice = {
   set(b) { on = !!b; try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {} if (!on) this.hush(); },
   canSpeak: typeof window !== 'undefined' && 'speechSynthesis' in window,
   canListen: !!SR,
+  get settings() { return { ...vset }; },
+  setSettings(o) { Object.assign(vset, o); try { localStorage.setItem(SKEY, JSON.stringify(vset)); } catch (e) {} },
+  voices() { try { return speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); } catch (e) { return []; } },
+  pick() {
+    const all = this.voices();
+    return all.find(v => v.name === vset.name) || all.find(x => /en(-|_)(US|GB)/.test(x.lang) && /female|samantha|serena|google uk english female|aria|jenny/i.test(x.name)) || all[0] || null;
+  },
+  utter(text) {
+    const u = new SpeechSynthesisUtterance(text); u.rate = vset.rate; u.pitch = 0.95; u.volume = Math.max(0.05, volume());
+    const v = this.pick(); if (v) u.voice = v; return u;
+  },
   say(text, force = false) {
     if ((!on && !force) || !this.canSpeak) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text); u.rate = 0.92; u.pitch = 0.95;
-      const v = speechSynthesis.getVoices().find(x => /en(-|_)(US|GB)/.test(x.lang) && /female|samantha|serena|google uk english female|aria|jenny/i.test(x.name)) || speechSynthesis.getVoices().find(x => /^en/.test(x.lang));
-      if (v) u.voice = v;
-      speechSynthesis.speak(u);
-    } catch (e) { /* speech blocked: stay silent */ }
+    try { this.stopQueue(); speechSynthesis.cancel(); speechSynthesis.speak(this.utter(text)); } catch (e) { /* speech blocked: stay silent */ }
   },
-  hush() { try { speechSynthesis.cancel(); } catch (e) {} },
+  // Read a list of lines in order with pauses; onLine(i) fires as each line starts, onEnd(completed) at the end.
+  sayQueue(lines, { gap = 700, onLine, onEnd } = {}) {
+    if (!this.canSpeak) { onEnd && onEnd(false); return; }
+    this.stopQueue(); try { speechSynthesis.cancel(); } catch (e) {}
+    const q = queue = { i: -1, stopped: false, timer: null };
+    const next = () => {
+      if (q.stopped || queue !== q) return;
+      q.i++; if (q.i >= lines.length) { queue = null; onEnd && onEnd(true); return; }
+      const line = lines[q.i], wait = typeof line === 'object' ? line.pause || 0 : 0, text = typeof line === 'object' ? line.text : line;
+      onLine && onLine(q.i);
+      if (!text) { q.timer = setTimeout(next, wait); return; }
+      const u = this.utter(text); let done = false;
+      const fin = () => { if (done) return; done = true; q.timer = setTimeout(next, gap + wait); };
+      u.onend = fin; u.onerror = fin;
+      try { speechSynthesis.speak(u); } catch (e) { fin(); }
+      // Some browsers drop onend for long utterances: fall back to a length-based estimate.
+      setTimeout(fin, 1500 + text.length * 95 / vset.rate);
+    };
+    q.end = onEnd; next();
+  },
+  stopQueue() { if (queue) { const q = queue; q.stopped = true; clearTimeout(q.timer); queue = null; q.end && q.end(false); } },
+  get speaking() { return !!queue; },
+  hush() { this.stopQueue(); try { speechSynthesis.cancel(); } catch (e) {} },
   listen(onText, onEnd) {
     if (!SR) { onEnd && onEnd('unsupported'); return; }
     this.stop();
@@ -76,5 +107,20 @@ export function parseSpoken(alts, step) {
     if (step === 'bp') { if (n.length >= 2) return { sys: n[0], dia: n[1] }; continue; }
     if (n.length >= 1) return { [step]: n[n.length - 1] };
   }
+  return null;
+}
+// Free-form phrase to a named reading: "pulse sixty-eight", "SpO2 ninety-eight percent", "one twenty over eighty".
+export function parseAny(text) {
+  const t = String(text).toLowerCase(), n = wordsToNumbers(t.replace(/\bsp\s*o\s*2\b|\bspo2\b|\bsp02\b/g, ' spo '));
+  if (!n.length) return null;
+  const last = n[n.length - 1];
+  if (/\bover\b|\//.test(t) && n.length >= 2) return { sys: n[n.length - 2], dia: last };
+  if (/\bspo\b|sp\s*o\s*2|oxygen|saturation|\bsat\b/.test(t)) return { spo2: last };
+  if (/pulse|heart|\bbpm\b|beats/.test(t)) return { hr: last };
+  if (/breath|respirat/.test(t)) return { rr: last };
+  if (/sugar|glucose/.test(t)) return { glu: last };
+  if (/temp|degree|celsius/.test(t) || (last >= 34 && last <= 42 && !Number.isInteger(last))) return { temp: last };
+  if (/sleep|hours? of/.test(t)) return { sleep: last };
+  if (/percent|%/.test(t) && last >= 70 && last <= 100) return { spo2: last };
   return null;
 }

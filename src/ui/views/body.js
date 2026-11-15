@@ -5,8 +5,9 @@ import { glyph, chip, fmt, fd, LV, LVS, reason, forecastText, rank } from '../fo
 import { chart } from '../charts.js';
 import { regionLevels } from '../assess.js';
 import { tutorial } from '../tutorials.js';
+import { badgesHTML } from './profile.js';
 
-const COLS = ['#00e5ff', '#5ad8ff', '#ffb703', '#ff2a5f'];
+const COLS = ['var(--s0-fill)', 'var(--s1-fill)', 'var(--s2-fill)', 'var(--s3-fill)'];
 export const REG = {
   head: { name: 'Neurological', organ: 'Brain, eyes and inner ear. Sleep, mood, fatigue and attention depend on them; fluid shifting toward the head in microgravity can also change vision.', risks: [['Behavioral conditions and psychiatric disorders', R + 'risk-of-behavioral-conditions-and-psychiatric-disorders/'], ['Inadequate sleep and irregular schedules', R + 'risk-from-inadequate-sleep-and-irregular-schedules/']] },
   chest: { name: 'Cardiopulmonary', organ: 'Heart, blood vessels and lungs. In microgravity the heart works against less load and can shrink; blood pressure and breathing show strain early.', risks: [['Cardiovascular adaptations', R + 'risk-of-cardiovascular-adaptations/'], ['Reduced cardiorespiratory and musculoskeletal fitness', R + 'risk-of-reduced-cardiorespiratory-and-musculoskeletal-fitness/']] },
@@ -21,7 +22,7 @@ export function figure(L) {
   <path d="M62 84q38-16 76 0l6 70H56z" ${st('chest')}/>
   <path d="M56 156h88l-4 62H60z" ${st('core')}/>
   <path d="M62 220h34l-4 180H70zM104 220h34l-8 180h-22z" ${st('legs')}/>
-  <path d="M60 86 40 200l12 2 18-100M140 86l20 114-12 2-18-100" fill="#3d59ab" fill-opacity=".1" stroke="#3d59ab" stroke-width="1.5"/></svg>`;
+  <path d="M60 86 40 200l12 2 18-100M140 86l20 114-12 2-18-100" fill="var(--blue)" fill-opacity=".1" stroke="var(--blue)" stroke-width="1.5"/></svg>`;
 }
 
 export function detail(a, day) {
@@ -78,5 +79,6 @@ export function view(ctx) {
     </div>
   </div>
   <section><h2 style="margin-bottom:14px">Vitals, most urgent first</h2><div class="grid tiles">${tiles(A, S, day)}</div><p class="small soft" style="margin-top:10px">Bar under each tile: the next 60 days. The coloured span is when the reading could cross a limit; the white tick is when help from Earth takes effect.</p></section>
-  ${detail(a, day)}</div>`;
+  ${detail(a, day)}
+  <section><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px"><h2>Trophy room</h2><a href="#profile">Ranks and pre-flight baseline</a></div>${badgesHTML(P, day)}</section></div>`;
 }

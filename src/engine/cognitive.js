@@ -2,7 +2,7 @@
 // Code generated with Claude (Anthropic) under the direction of Team V-Sync and reviewed by the team.
 // Cognitive battery scoring: psychomotor vigilance (PVT), spatial memory sequence and motor tracking.
 
-export const PVT_LAPSE_MS = 500, PVT_FATIGUE_MS = 320, PVT_ACE_MS = 240;
+export const PVT_LAPSE_MS = 500, PVT_FATIGUE_MS = 320, PVT_ACE_MS = 250;
 const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const clamp = (x, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, x));
 

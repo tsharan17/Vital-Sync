@@ -142,6 +142,19 @@ function stageBody(step, D, A, P) {
   return tut + timers + body + voiceBar(step, D) + quick + extra;
 }
 
+const SHORT = { hr: 'Heart rate', bp: 'Blood pressure', spo2: 'SpO₂', rr: 'Breathing', temp: 'Temperature', glu: 'Blood sugar', sleep: 'Sleep' };
+const VITAL = Object.keys(SHORT);
+// Daily flight clearance checklist: each vital turns green once it is logged.
+export function vitalsHTML(D) {
+  const vit = D.steps.filter(s => VITAL.includes(s)), cur = D.steps[D.i];
+  const ok = s => !D.skip[s] && (D.seen[s] || (D.touched && D.touched[s]));
+  const n = vit.filter(ok).length, pctv = Math.round(n / vit.length * 100);
+  return `<div class="vitals" id="vitals"><div class="vhead"><b>Daily flight clearance: ${n} of ${vit.length} vitals logged</b><span class="num">${pctv}%</span></div>
+    <div class="vbar" role="progressbar" aria-label="Vitals logged" aria-valuemin="0" aria-valuemax="${vit.length}" aria-valuenow="${n}"><i style="width:${pctv}%"></i></div>
+    <ul class="vlist">${vit.map(s => `<li><button data-act="ci-go" data-i="${D.steps.indexOf(s)}" class="${ok(s) ? 'ok' : D.skip[s] ? 'skip' : ''}${s === cur ? ' cur' : ''}" ${s === cur ? 'aria-current="step"' : ''}><span class="vk" aria-hidden="true">${ok(s) ? '✓' : D.skip[s] ? '–' : ''}</span>${SHORT[s]}<span class="sr">${ok(s) ? ', logged' : D.skip[s] ? ', not measured' : ', to do'}</span></button></li>`).join('')}</ul></div>`;
+}
+export function refreshVitals(D) { const el = document.getElementById('vitals'); if (el) el.outerHTML = vitalsHTML(D); }
+
 export function view(ctx) {
   const { P, A, m, S } = ctx, D = S.ci, step = D.steps[D.i], next = D.steps[D.i + 1], done = D.steps.filter(s => D.seen[s]).length;
   const first = D.steps.filter(s => D.flagged[s] >= 1 && ['hr', 'bp', 'spo2', 'rr', 'temp', 'glu'].includes(s));
@@ -150,7 +163,7 @@ export function view(ctx) {
     <h1>${D.update ? `Update today's clearance` : `Day ${D.day} clearance mission`}</h1>
     <p class="lede">${esc(P.name)}, ${D.steps.length - 1} checks stand between you and today's duty clearance, about ${D.steps.includes('bp') ? 'ten' : 'five'} minutes with the timed rests. ${first.length ? `${NAME[first[0]]} comes first today because it has been drifting.` : 'Your readings have been steady, so they come in the usual order.'}</p>
     <div class="facts"><span>Location<b>${m.name}</b></span><span>One-way signal<b>${m.oneWayS < 60 ? m.oneWayS.toFixed(1) + ' s' : (m.oneWayS / 60).toFixed(0) + ' min'}</b></span><span>Ground consult, 3 exchanges<b>${(consultDays(m) * 24).toFixed(0)} h</b></span><span>Reward<b>+100 XP</b></span></div>
-    <div class="prog" aria-label="Step ${D.i + 1} of ${D.steps.length}">${D.steps.map((s, k) => `<i class="${k === D.i ? 'cur' : D.seen[s] ? 'done' : ''}"></i>`).join('')}</div>
+    ${vitalsHTML(D)}
   </div></div></section>`;
   const nav = `<nav class="panel stepsnav" aria-label="Clearance steps"><ol>${D.steps.map((s, k) => `<li><button data-act="ci-go" data-i="${k}" class="${D.seen[s] && k !== D.i ? 'done' : ''}" ${k === D.i ? 'aria-current="step"' : ''}><span class="n">${D.seen[s] && k !== D.i ? '✓' : k + 1}</span><span>${NAME[s]}</span>${D.flagged[s] >= 1 ? `<span class="s${D.flagged[s]}" title="Drifting">${glyph(D.flagged[s], 14)}</span>` : '<span></span>'}</button></li>`).join('')}</ol>
     <p class="small soft" style="margin-top:14px;padding:0 10px">${done} of ${D.steps.length} done. Drifting readings are asked first.${D.gluDue ? '' : ' Blood sugar is weekly and not due today.'}</p></nav>`;

@@ -45,7 +45,7 @@ export function clearance(topLevel) {
 export const BADGES = [
   { id: 'immune', icon: '🛡️', name: 'Immune Fortress', how: '7 nights in a row with no sleep debt (7 hours or more)' },
   { id: 'neuro', icon: '⚡', name: 'Neuro-Ace', how: `Median reaction time under ${PVT_ACE_MS} ms on the attention test` },
-  { id: 'survivor', icon: '🚀', name: 'Deep Space Survivor', how: '30-day check-in streak' },
+  { id: 'survivor', icon: '🚀', name: 'Deep Space Veteran', how: '30-day check-in streak' },
   { id: 'adapted', icon: '🧬', name: 'Zero-G Adapted', how: `Completed the ${ADAPT}-day adaptation window` }
 ];
 export function achievements(P, day) {

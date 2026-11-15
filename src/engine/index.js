@@ -6,3 +6,4 @@ export * from './modules.js';
 export * from './simulate.js';
 export * from './cognitive.js';
 export * from './gamification.js';
+export * from './debrief.js';

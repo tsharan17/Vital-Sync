@@ -3,12 +3,14 @@
 const KEY = 'vital-sync-mute';
 let ctx = null, master = null, muted = (() => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
 let calm = null;
+const VKEY = 'vital-sync-volume';
+let vol = (() => { try { const v = parseFloat(localStorage.getItem(VKEY)); return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.6; } catch (e) { return 0.6; } })();
 
 function ac() {
   if (muted) return null;
   if (!ctx) {
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    try { ctx = new C(); master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination); } catch (e) { return null; }
+    try { ctx = new C(); master = ctx.createGain(); master.gain.value = vol * 0.85; master.connect(ctx.destination); } catch (e) { return null; }
   }
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
   return ctx;
@@ -30,6 +32,7 @@ export const sfx = {
   chime: () => { tone(1046, 0.5, { gain: 0.09 }); tone(1568, 0.6, { gain: 0.05, at: 0.02 }); },
   bell: () => { [523, 659, 784, 1046].forEach((f, k) => tone(f, 0.9, { gain: 0.08, at: k * 0.08 })); },
   fanfare: () => { [523, 659, 784, 1046, 1318].forEach((f, k) => tone(f, 0.28, { type: 'triangle', gain: 0.09, at: k * 0.11 })); tone(1568, 0.8, { type: 'triangle', gain: 0.08, at: 0.6 }); },
+  stamp: () => { tone(130, 0.22, { gain: 0.32, to: 42 }); tone(2600, 0.04, { type: 'square', gain: 0.02, at: 0.01 }); tone(90, 0.3, { type: 'triangle', gain: 0.12, at: 0.03, to: 40 }); },
   error: () => { tone(220, 0.18, { type: 'sawtooth', gain: 0.05 }); tone(165, 0.22, { type: 'sawtooth', gain: 0.05, at: 0.16 }); },
   klaxon: (level = 2) => { const n = level >= 3 ? 3 : 1; for (let k = 0; k < n; k++) { tone(740, 0.22, { type: 'sawtooth', gain: 0.05, at: k * 0.5 }); tone(554, 0.22, { type: 'sawtooth', gain: 0.05, at: k * 0.5 + 0.24 }); } },
   // Calm ambient pad for the 5-minute blood pressure rest.
@@ -51,4 +54,9 @@ export const isMuted = () => muted;
 export function setMuted(b) {
   muted = !!b; try { localStorage.setItem(KEY, muted ? '1' : '0'); } catch (e) {}
   if (muted) sfx.calmStop();
+}
+export const getVolume = () => vol;
+export function setVolume(v) {
+  vol = Math.max(0, Math.min(1, +v || 0)); try { localStorage.setItem(VKEY, String(vol)); } catch (e) {}
+  if (master && ctx) { try { master.gain.setTargetAtTime(vol * 0.85, ctx.currentTime, 0.03); } catch (e) { master.gain.value = vol * 0.85; } }
 }

@@ -12,7 +12,7 @@ export function starfield() {
     const d = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; c.width = W * d; c.height = H * d; g.setTransform(d, 0, 0, d, 0, 0);
     stars = Array.from({ length: Math.round(W * H / 6500) }, () => ({ x: seed() * W, y: seed() * H, z: 0.3 + seed() * 1.4, t: seed() * 6.28, hue: seed() < 0.15 ? '0,229,255' : seed() < 0.05 ? '0,255,157' : '220,240,255' }));
   }
-  function draw(ts) {
+  let draw = function (ts) {
     const dt = Math.min(50, ts - last || 16); last = ts;
     g.clearRect(0, 0, W, H);
     for (const s of stars) {
@@ -22,5 +22,7 @@ export function starfield() {
     }
     if (!still) requestAnimationFrame(draw);
   }
+  // paused while the light theme hides it
+  const _draw = draw; draw = ts => { if (document.documentElement.dataset.theme === 'light') { last = ts; requestAnimationFrame(draw); return; } _draw(ts); };
   size(); addEventListener('resize', () => { size(); if (still) draw(0); }); requestAnimationFrame(draw);
 }
