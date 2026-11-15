@@ -2,6 +2,7 @@
 import { IND, consultDays, sleepDebt, missionReadiness, clearance, quests, xpOf, rankOf, streakOf } from '../../engine/index.js';
 import { gauge } from '../hud.js';
 import { badgesHTML } from './profile.js';
+import { deck } from './deck.js';
 import { todayISO } from '../../store.js';
 import { esc, fmt, glyph, chip, check, reason, stepsFor, rank, forecastText, LV } from '../format.js';
 import { chart, spark } from '../charts.js';
@@ -42,6 +43,7 @@ export function view(ctx) {
     <div class="grid two">${questP}${rdP}</div>
     <section><h2 style="margin-bottom:14px">What changed today</h2><div class="grid changes">${changes}</div></section>
     <div class="grid two">${action}${fc}</div>
+    ${deck(ctx)}
     <section><h2 style="margin-bottom:14px">Your other trends</h2><div class="grid minis">${minis}</div></section>
     <section><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px"><h2>Trophy room</h2><a href="#profile">Open crew record</a></div>${badgesHTML(P, day)}</section>
   </div>`;

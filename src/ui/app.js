@@ -10,7 +10,6 @@ import { voice, parseSpoken, parseAny, linkVolume } from './audioGuide.js';
 import { THEMES, themePref, setTheme, applyTheme } from './theme.js';
 import { briefHTML, stampHTML, BRIEF } from './views/overlays.js';
 import * as audio from './views/audio.js';
-import { deck } from './views/deck.js';
 import { artFor } from './art.js';
 import { timerAction, mountTimers, onTimerDone, resetTimers, timerState } from './timer.js';
 import { starfield } from './starfield.js';
@@ -52,7 +51,8 @@ linkVolume(getVolume);
 const prof = () => db.profiles.find(p => p.id === db.current) || db.profiles[0];
 const lastDay = () => { const L = prof().log; return L.length ? L[L.length - 1].d : 0; };
 const modeOf = p => MODES.find(x => x.id === p.mode) || MODES[3];
-const defaultRoute = () => { const L = prof().log, last = L[L.length - 1]; return last && last.date === todayISO() ? 'today' : 'check-in'; };
+// The app always opens on the clearance: tests first, results after.
+const defaultRoute = () => 'check-in';
 const route = () => { const h = location.hash.slice(1); return VIEWS[h] ? h : defaultRoute(); };
 const persist = () => save(db);
 
@@ -89,7 +89,6 @@ function render() {
   if (!P.log.length && NEEDS_DATA.includes(v)) main = `<section class="band"><div class="wrap"><div class="frame"><div class="kicker">NO TELEMETRY</div><h1>No readings yet.</h1><p class="lede">${esc(P.name)} has not completed a clearance. The first one takes about ten minutes with the timed rests.</p><p style="margin-top:24px"><a class="btn primary big" href="#check-in">Start your first clearance</a></p></div></div></section>`;
   else main = VIEWS[v].view(c);
   if (artFor(v)) main = main.replace('<div class="frame">', `<div class="frame has-art"><div class="bandart">${artFor(v)}</div>`);
-  if (v === 'check-in') main += `<div class="wrap deckwrap">${deck(c)}</div>`;
   const replay = S.viewDay != null && S.viewDay < lastDay() && v !== 'check-in' ? `<div class="wrap" style="margin-top:14px"><p class="note info">Viewing mission day ${S.viewDay}. <button class="btn ghost" data-act="replay-clear">Back to the latest day</button></p></div>` : '';
   const { rail, bar } = hud(v, P, c.m);
   const overlay = S.stamp && v === 'today' ? stampHTML(S.stamp) : S.brief != null ? briefHTML(S.brief, P) : '';
