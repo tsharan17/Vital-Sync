@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.firebase/
+.vercel/
+*.log
+.DS_Store
